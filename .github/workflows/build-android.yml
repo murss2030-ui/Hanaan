@@ -1,0 +1,142 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Prepare www folder
+        run: |
+          mkdir -p www
+          HTML_FILE=$(find . -maxdepth 1 -name "*.html" -type f | head -1)
+          if [ -z "$HTML_FILE" ]; then
+            echo "ERROR: No HTML file found in repo root."
+            ls -la
+            exit 1
+          fi
+          echo "Using HTML file: $HTML_FILE"
+          cp "$HTML_FILE" www/index.html
+
+      - name: Inject Capacitor init script
+        run: |
+          cat > www/rc-init.js << 'RC_EOF'
+          (function(){
+            function setup(){
+              var Cap = window.Capacitor;
+              if (!Cap || !Cap.Plugins) return;
+              if (Cap.Plugins.App && Cap.Plugins.App.addListener) {
+                Cap.Plugins.App.addListener('backButton', function(){
+                  var active = document.querySelector('.view.active');
+                  if (active && active.id === 'view-module-detail') {
+                    if (typeof setView === 'function') setView('modules');
+                    return;
+                  }
+                  if (active && active.id !== 'view-dashboard') {
+                    if (typeof setView === 'function') setView('dashboard');
+                    return;
+                  }
+                  if (Cap.Plugins.App.minimizeApp) Cap.Plugins.App.minimizeApp();
+                });
+              }
+              if (Cap.Plugins.StatusBar) {
+                try {
+                  Cap.Plugins.StatusBar.setBackgroundColor({ color: '#1B2A38' });
+                  Cap.Plugins.StatusBar.setStyle({ style: 'DARK' });
+                } catch(e) {}
+              }
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', setup);
+            } else {
+              setup();
+            }
+          })();
+          RC_EOF
+          sed -i 's|</body>|<script src="rc-init.js"></script></body>|' www/index.html
+          echo "Verifying injection:"
+          grep -c "rc-init.js" www/index.html
+
+      - name: Initialize npm project
+        run: npm init -y
+
+      - name: Install Capacitor
+        run: |
+          npm install @capacitor/core@^6.1.2 @capacitor/cli@^6.1.2 @capacitor/android@^6.1.2 @capacitor/app@^6.0.1 @capacitor/status-bar@^6.0.1 @capacitor/splash-screen@^6.0.2
+
+      - name: Init Capacitor
+        run: npx cap init "Rotation Copilot" "com.rotationcopilot.app" --web-dir=www
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Patch AndroidManifest permissions
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          if [ ! -f "$MANIFEST" ]; then
+            echo "ERROR: Manifest not found"
+            exit 1
+          fi
+          PERMS="android.permission.INTERNET android.permission.ACCESS_NETWORK_STATE android.permission.CAMERA android.permission.RECORD_AUDIO android.permission.READ_EXTERNAL_STORAGE android.permission.WRITE_EXTERNAL_STORAGE android.permission.READ_MEDIA_IMAGES android.permission.READ_MEDIA_AUDIO android.permission.READ_MEDIA_VIDEO"
+          for P in $PERMS; do
+            if ! grep -q "\"$P\"" "$MANIFEST"; then
+              sed -i "s|<application|<uses-permission android:name=\"$P\" />\n    <application|" "$MANIFEST"
+            fi
+          done
+          echo "Final manifest permissions:"
+          grep "uses-permission" "$MANIFEST"
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare output
+        run: |
+          mkdir -p build-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk build-output/RotationCopilot.apk
+          ls -lh build-output/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RotationCopilot-APK
+          path: build-output/RotationCopilot.apk
+          if-no-files-found: error
+          retention-days: 30
