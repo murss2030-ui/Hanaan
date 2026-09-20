@@ -1,0 +1,2460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotation Copilot — Clinical Pharmacist Workup System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1B2A38; --ink-soft:#3B4C5C;
+  --paper:#F6F4EE; --paper-raised:#FFFFFF;
+  --accent:#3E6259; --accent-deep:#2C4A42; --accent-soft:#DCE8E2;
+  --line:#D8D3C6; --line-soft:#E7E3D8;
+  --red:#A63D2C; --red-soft:#F4E1DC;
+  --amber:#B8862E; --amber-soft:#F3E8D3;
+  --green:#3E6259; --green-soft:#DCE8E2;
+  --muted:#756F62;
+  --serif:'Source Serif 4', Georgia, serif;
+  --sans:'IBM Plex Sans', -apple-system, sans-serif;
+  --mono:'IBM Plex Mono', 'SFMono-Regular', monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+body{min-height:100vh;}
+a{color:var(--accent-deep);}
+button{font-family:var(--sans);cursor:pointer;}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;margin:0 0 .3em 0;color:var(--ink);}
+.app{display:flex;min-height:100vh;}
+
+/* ---- SIDEBAR ---- */
+.rail{width:212px;flex:0 0 212px;background:var(--ink);color:#EDE9DE;padding:22px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.rail-brand{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:#fff;line-height:1.25;padding:0 6px 18px 6px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:14px;}
+.rail-brand small{display:block;font-family:var(--sans);font-size:.68rem;letter-spacing:.02em;color:#B9C4BF;font-weight:500;margin-top:3px;}
+.rail button.nav-item{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:#CFD8D2;text-align:left;padding:9px 10px;border-radius:7px;font-size:.86rem;font-weight:500;margin-bottom:2px;}
+.rail button.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.rail button.nav-item.active{background:var(--accent);color:#fff;}
+.rail-case{margin-top:16px;padding:10px 10px;background:rgba(255,255,255,.05);border-radius:8px;font-size:.75rem;color:#B9C4BF;}
+.rail-case b{display:block;color:#fff;font-size:.82rem;margin-bottom:2px;font-family:var(--mono);}
+
+/* ---- MAIN ---- */
+.main{flex:1;min-width:0;padding:30px 38px 80px 38px;max-width:920px;}
+.view{display:none;}
+.view.active{display:block;}
+.pageHead{margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+.pageHead p{margin:.25em 0 0 0;color:var(--muted);font-size:.92rem;max-width:56ch;}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-family:var(--mono);padding:3px 9px;border-radius:20px;font-weight:500;border:1px solid transparent;}
+.chip.green{background:var(--green-soft);color:var(--accent-deep);border-color:#c3d6cd;}
+.chip.amber{background:var(--amber-soft);color:#8a6520;border-color:#e2cf9e;}
+.chip.red{background:var(--red-soft);color:var(--red);border-color:#e6c1b7;}
+.chip.gray{background:#ECE9E0;color:var(--muted);border-color:var(--line);}
+
+.card{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:16px;}
+.card h3{font-size:1rem;margin-bottom:10px;}
+.card h3 .hint{font-family:var(--sans);font-weight:400;font-size:.78rem;color:var(--muted);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+label{display:block;font-size:.74rem;font-weight:600;color:var(--ink-soft);margin-bottom:4px;letter-spacing:.01em;}
+input[type=text],input[type=number],input[type=date],textarea,select{
+  width:100%;font-family:var(--sans);font-size:.87rem;color:var(--ink);
+  background:#FCFBF8;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:10px;
+}
+textarea{min-height:56px;resize:vertical;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+.field-wrap{position:relative;margin-bottom:10px;}
+.field-wrap input,.field-wrap textarea{margin-bottom:0;}
+.src-tag{display:flex;gap:6px;align-items:center;margin-top:3px;font-size:.68rem;font-family:var(--mono);color:var(--muted);}
+.src-tag .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
+.dot.hi{background:var(--accent);}
+.dot.mid{background:var(--amber);}
+.dot.lo{background:var(--red);}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:7px;border:1px solid var(--ink);background:var(--ink);color:#fff;font-size:.85rem;font-weight:600;}
+.btn:hover{background:var(--accent-deep);border-color:var(--accent-deep);}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500;}
+.btn.secondary:hover{border-color:var(--ink);}
+.btn.accent{background:var(--accent);border-color:var(--accent);}
+.btn.accent:hover{background:var(--accent-deep);}
+.btn.sm{padding:5px 11px;font-size:.76rem;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+table{width:100%;border-collapse:collapse;font-size:.83rem;}
+th{text-align:left;font-family:var(--mono);font-weight:500;font-size:.68rem;letter-spacing:.02em;color:var(--muted);text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line);}
+td{padding:7px 8px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+.mono{font-family:var(--mono);}
+
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty h3{color:var(--ink-soft);}
+
+/* dropzone */
+.dropzone{border:2px dashed var(--line);border-radius:10px;padding:28px;text-align:center;background:#FCFBF8;}
+.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.thumb{width:84px;height:84px;border-radius:8px;overflow:hidden;position:relative;border:1px solid var(--line);}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.thumb .rm{position:absolute;top:2px;right:2px;background:rgba(27,42,56,.75);color:#fff;border:none;border-radius:5px;width:18px;height:18px;font-size:.7rem;line-height:1;}
+
+.drp-card{border-left:4px solid var(--muted);}
+.drp-card.high{border-left-color:var(--red);}
+.drp-card.possible{border-left-color:var(--amber);}
+.drp-card.needsdata{border-left-color:var(--muted);}
+.badge-cat{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-size:.68rem;font-family:var(--mono);padding:2px 8px;border-radius:5px;margin-right:6px;}
+
+.discussion-sec{margin-bottom:10px;}
+.discussion-sec b{display:block;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-family:var(--mono);margin-bottom:2px;}
+.discussion-sec div{font-size:.87rem;line-height:1.5;}
+
+.evidence-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.evidence-row a.btn{text-decoration:none;}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-line{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem;padding:10px 0;}
+
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:700px){.dash-stats{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+.stat .num{font-family:var(--serif);font-size:1.7rem;color:var(--ink);}
+.stat .lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+
+.case-row{display:flex;justify-content:space-between;align-items:center;padding:13px 4px;border-bottom:1px solid var(--line-soft);cursor:pointer;}
+.case-row:hover{background:#FCFBF8;}
+.case-row:last-child{border-bottom:none;}
+.case-row .cid{font-family:var(--mono);font-weight:600;font-size:.88rem;}
+.case-row .meta{font-size:.76rem;color:var(--muted);margin-top:2px;}
+.bar{height:5px;background:var(--line-soft);border-radius:3px;overflow:hidden;width:100px;}
+.bar > div{height:100%;background:var(--accent);}
+
+.mode-toggle{display:flex;gap:4px;background:#ECE9E0;padding:3px;border-radius:8px;width:fit-content;margin-bottom:16px;}
+.mode-toggle button{border:none;background:transparent;padding:6px 13px;border-radius:6px;font-size:.78rem;font-weight:600;color:var(--muted);}
+.mode-toggle button.active{background:var(--paper-raised);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+
+.presoutline{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:26px 30px;font-family:var(--serif);}
+.presoutline h2{border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:14px;}
+.presoutline h4{font-family:var(--sans);text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;color:var(--accent-deep);margin:16px 0 4px 0;border-top:1px solid var(--line-soft);padding-top:12px;}
+.presoutline p{font-size:.92rem;line-height:1.6;margin:0 0 6px 0;}
+
+.taskrow{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-soft);}
+.taskrow:last-child{border-bottom:none;}
+.taskrow input[type=checkbox]{width:16px;height:16px;flex:0 0 auto;}
+.taskrow .txt{flex:1;font-size:.87rem;}
+.taskrow.done .txt{text-decoration:line-through;color:var(--muted);}
+
+.notice{background:var(--amber-soft);border:1px solid #e2cf9e;color:#6d5217;border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:16px;}
+.notice.info{background:var(--accent-soft);border-color:#c3d6cd;color:var(--accent-deep);}
+.small{font-size:.78rem;color:var(--muted);}
+.topbar-mobile{display:none;}
+
+/* ---- MODAL (delete confirmation etc.) ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(27,42,56,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal-overlay.hidden{display:none;}
+.modal-box{background:var(--paper-raised);border-radius:12px;padding:24px 26px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.28);}
+.modal-box h3{margin-bottom:8px;}
+.modal-box p{font-size:.88rem;color:var(--ink-soft);line-height:1.5;margin-bottom:18px;}
+.modal-box .btnrow{justify-content:flex-end;margin-top:0;}
+.btn.danger{background:var(--red);border-color:var(--red);}
+.btn.danger:hover{background:#8a3324;border-color:#8a3324;}
+
+/* ---- RECONCILIATION / GENERIC NAME MATCHING ---- */
+.gen-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.72rem;background:var(--accent-soft);color:var(--accent-deep);padding:2px 8px;border-radius:5px;}
+.recon-note{font-size:.74rem;color:#8a6520;margin-top:2px;}
+.step-line{font-size:.72rem;font-family:var(--mono);color:var(--muted);letter-spacing:.02em;margin-bottom:6px;text-transform:uppercase;}
+
+/* ---- CLINICAL MODULES ---- */
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+.module-card{cursor:pointer;transition:box-shadow .15s,transform .15s;position:relative;padding-top:34px;}
+.module-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.09);transform:translateY(-1px);}
+.module-num{position:absolute;top:16px;right:18px;font-family:var(--mono);font-size:.72rem;color:var(--muted);}
+.module-icon{font-size:1.5rem;margin-bottom:6px;}
+.module-badge{display:inline-block;font-family:var(--mono);font-size:.68rem;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-top:6px;color:var(--muted);}
+.check-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:.87rem;}
+.check-row:last-child{border-bottom:none;}
+.check-row input[type=checkbox]{width:16px;height:16px;flex:0 0 auto;}
+.calc-box{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-top:10px;}
+.calc-result{font-family:var(--serif);font-size:1.3rem;font-weight:600;color:var(--accent-deep);}
+.timeline-item{border-left:2px solid var(--line);padding:2px 0 14px 16px;position:relative;}
+.timeline-item::before{content:'';position:absolute;left:-5px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--accent);}
+.mod-section{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
+.mod-section:first-child{margin-top:0;padding-top:0;border-top:none;}
+@media(max-width:860px){
+  .app{flex-direction:column;}
+  .rail{width:100%;flex:none;height:auto;position:sticky;top:0;z-index:20;padding:10px 12px;}
+  .rail-brand{display:none;}
+  .rail-case{display:none;}
+  .rail{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.15);}
+  .rail button.nav-item{white-space:nowrap;margin-bottom:0;}
+  .main{padding:20px 16px 60px 16px;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .dash-stats{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal-box">
+    <h3 id="modalTitle"></h3>
+    <p id="modalBody"></p>
+    <div class="btnrow">
+      <button class="btn secondary" id="modalCancelBtn">Cancel</button>
+      <button class="btn danger" id="modalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+  <nav class="rail" id="rail">
+    <div class="rail-brand">Rotation Copilot<small>Clinical Pharmacist Workup System</small></div>
+    <button class="nav-item" data-view="dashboard">🏠 Dashboard</button>
+    <button class="nav-item" data-view="patients">🧑‍⚕️ Patients</button>
+    <button class="nav-item" data-view="modules">🧩 Clinical Modules</button>
+    <button class="nav-item" data-view="followup">✅ Tasks &amp; Follow-up</button>
+    <button class="nav-item" data-view="interventions">💊 Interventions</button>
+    <button class="nav-item" data-view="documentation">📝 Documentation</button>
+    <button class="nav-item" data-view="reports">📊 Reports</button>
+    <button class="nav-item" data-view="settings">⚙️ Settings</button>
+    <div class="rail-case" id="railCase" style="display:none;"></div>
+  </nav>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section class="view" id="view-dashboard">
+      <div class="pageHead">
+        <div>
+          <h1>Today's Rotation</h1>
+          <p>Your rotation at a glance — cases, DRPs, and what needs follow-up.</p>
+        </div>
+        <button class="btn accent" onclick="startNewCase()">+ New Patient Case</button>
+      </div>
+      <div class="dash-stats" id="dashStats"></div>
+      <div class="card">
+        <h3>Quick actions</h3>
+        <div class="btnrow">
+          <button class="btn secondary" onclick="setView('patients')">🧑‍⚕️ Go to Patients</button>
+          <button class="btn secondary" onclick="setView('modules')">🧩 Go to Clinical Modules</button>
+          <button class="btn secondary" onclick="setView('reports')">📊 View Reports</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Recent cases <span class="hint">— tap to open</span></h3>
+        <div id="dashRecentCases"></div>
+      </div>
+      <div class="notice info">This app runs entirely in your browser — nothing is sent anywhere except directly to Google's Gemini API, using your own key, when you run an analysis step. Nothing is permanently stored on Google's side; only the structured data you verify is saved, privately, to this device's storage.</div>
+    </section>
+
+    <!-- PATIENTS -->
+    <section class="view" id="view-patients">
+      <div class="pageHead">
+        <div>
+          <h1>Patients</h1>
+          <p>Every case you've started. Open one to work through its Clinical Modules, or add more source material any time.</p>
+        </div>
+        <button class="btn accent" onclick="startNewCase()">+ New Patient Case</button>
+      </div>
+      <div class="card">
+        <h3>Cases <span class="hint">— tap a case to open its Clinical Modules</span></h3>
+        <div id="caseList"></div>
+      </div>
+    </section>
+
+    <!-- SCAN -->
+    <section class="view" id="view-scan">
+      <div class="pageHead">
+        <div>
+          <h1>Add Patient File</h1>
+          <p>Photograph or upload chart pages, type notes, or record a voice note. The app extracts the data, matches trade names to generic names for your review, then runs the full DRP and interaction analysis — explaining each step as it goes.</p>
+        </div>
+        <button class="btn secondary sm" onclick="setView('patients')">← Back to Patients</button>
+      </div>
+      <div id="scanNoCaseNotice"></div>
+      <div class="card">
+        <h3>1. Document type</h3>
+        <select id="docType">
+          <option value="Patient chart / admission note">Patient chart / admission note</option>
+          <option value="Laboratory report">Laboratory report</option>
+          <option value="Medication order / MAR">Medication order / MAR</option>
+          <option value="Progress / round note">Progress / round note</option>
+          <option value="Vital signs sheet">Vital signs sheet</option>
+          <option value="Diagnostic report (ECG/CT/CXR)">Diagnostic report (ECG/CT/CXR)</option>
+          <option value="Discharge medication list">Discharge medication list</option>
+          <option value="Other">Other</option>
+        </select>
+        <h3 style="margin-top:14px;">2. Add pages</h3>
+        <div class="dropzone" id="dropzone">
+          <p style="margin:0 0 10px 0;color:var(--muted);font-size:.87rem;">Drop images here, or</p>
+          <div class="btnrow" style="justify-content:center;">
+            <label class="btn secondary sm" style="margin:0;">📷 Take Photo<input type="file" accept="image/*" capture="environment" multiple style="display:none;" id="cameraInput"></label>
+            <label class="btn secondary sm" style="margin:0;">🖼 Upload Photos<input type="file" accept="image/*" multiple style="display:none;" id="uploadInput"></label>
+          </div>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn accent" id="analyzeBtn" onclick="analyzeCurrentBatch()" disabled>Analyze &amp; Extract</button>
+          <span class="small" id="pageCount"></span>
+        </div>
+
+        <h3 style="margin-top:22px;">Or add details another way</h3>
+        <div class="btnrow">
+          <button class="btn secondary sm" onclick="toggleEntryBox('manualEntryBox')">✍️ Type case details</button>
+          <button class="btn secondary sm" onclick="toggleEntryBox('voiceEntryBox')">🎙️ Record a voice note</button>
+        </div>
+
+        <div id="manualEntryBox" style="display:none;margin-top:10px;">
+          <p class="small">Write anything you know, in any order — the app will sort it into the workup. Example: "Age 50, male, appendicitis, on ceftriaxone and metronidazole, no known allergies…"</p>
+          <textarea id="manualCaseText" rows="6" placeholder="Type the case here, in Arabic or English…" style="width:100%;"></textarea>
+          <div class="btnrow"><button class="btn accent sm" id="manualAnalyzeBtn" onclick="analyzeManualText()">Analyze this text</button></div>
+        </div>
+
+        <div id="voiceEntryBox" style="display:none;margin-top:10px;">
+          <p class="small">Talk through the case out loud — history, meds, labs, whatever you have. Up to 3 minutes.</p>
+          <div class="btnrow">
+            <button class="btn secondary sm" id="recordBtn" onclick="startRecording()">🎙️ Start recording</button>
+            <span class="mono small" id="voiceTimer"></span>
+          </div>
+          <div id="voicePlayback"></div>
+          <div id="voiceStatus"></div>
+          <div class="btnrow"><button class="btn accent sm" id="voiceAnalyzeBtn" onclick="analyzeVoiceRecording()" disabled>Analyze this recording</button></div>
+        </div>
+      </div>
+      <div id="scanStatus"></div>
+      <div id="scanResultsPreview"></div>
+    </section>
+
+    <!-- CLINICAL MODULES -->
+    <section class="view" id="view-modules">
+      <div class="pageHead">
+        <div>
+          <h1>Clinical Modules</h1>
+          <p>The 10 core functions of a clinical pharmacist workup for the open patient. Pick one to work through it.</p>
+        </div>
+      </div>
+      <div id="modulesNoCaseNotice"></div>
+      <div class="modules-grid" id="modulesGrid"></div>
+    </section>
+
+    <!-- MODULE DETAIL -->
+    <section class="view" id="view-module-detail">
+      <div class="pageHead">
+        <div>
+          <button class="btn secondary sm" onclick="setView('modules')" style="margin-bottom:8px;">← Clinical Modules</button>
+          <h1 id="moduleDetailTitle">Module</h1>
+        </div>
+      </div>
+      <div id="moduleNoCaseNotice"></div>
+      <div id="patientDataSummaryBody"></div>
+      <div id="moduleDetailBody"></div>
+    </section>
+
+    <!-- FOLLOWUP -->
+    <section class="view" id="view-followup">
+      <div class="pageHead">
+        <div>
+          <h1>Tasks &amp; Follow-up</h1>
+          <p>Track clinical tasks from rounds and compare outcomes: baseline → first evaluation → second evaluation.</p>
+        </div>
+      </div>
+      <div id="followupNoCaseNotice"></div>
+      <div id="followupBody"></div>
+    </section>
+
+    <!-- INTERVENTIONS -->
+    <section class="view" id="view-interventions">
+      <div class="pageHead">
+        <div>
+          <h1>Interventions</h1>
+          <p>Every pharmacist intervention and recommendation logged across this patient's modules — action, prescriber response, and outcome.</p>
+        </div>
+      </div>
+      <div id="interventionsNoCaseNotice"></div>
+      <div id="interventionsBody"></div>
+    </section>
+
+    <!-- DOCUMENTATION -->
+    <section class="view" id="view-documentation">
+      <div class="pageHead">
+        <div>
+          <h1>Documentation</h1>
+          <p>A running clinical note log for this patient. Add a note here, or from any module.</p>
+        </div>
+      </div>
+      <div id="documentationNoCaseNotice"></div>
+      <div id="documentationBody"></div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="view" id="view-reports">
+      <div class="pageHead">
+        <div>
+          <h1>Reports</h1>
+          <p>Rotation-wide stats, plus a presentation-ready outline for the open patient.</p>
+        </div>
+      </div>
+      <div class="dash-stats" id="portfolioStats"></div>
+      <div class="card">
+        <h3>All cases</h3>
+        <table id="portfolioTable"><thead><tr><th>Case</th><th>Status</th><th>Completeness</th><th>DRPs</th><th>Created</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="pageHead" style="margin-top:8px;">
+        <div><h1 style="font-size:1.25rem;">Case presentation — open patient</h1></div>
+        <div class="btnrow" style="margin:0;">
+          <button class="btn secondary sm" onclick="copyPresentation()">Copy text</button>
+          <button class="btn sm" onclick="window.print()">Print / Save PDF</button>
+        </div>
+      </div>
+      <div id="presNoCaseNotice"></div>
+      <div id="presBody"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="pageHead">
+        <div>
+          <h1>Settings</h1>
+          <p>This app runs entirely on your device. To enable photo scanning &amp; AI analysis, connect your own Gemini API key below.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Gemini API key</h3>
+        <p class="small" style="margin-top:-4px;">Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. It is saved only in this browser's local storage on this device — it is never sent anywhere except directly to Google's Gemini API, for extraction, generic-name matching, DRP analysis, interaction checking, and clinical discussion generation. Anyone with access to this device/browser could read it from local storage, so don't use this on a shared or public device.</p>
+        <label>API key</label>
+        <input type="text" id="apiKeyInput" placeholder="AIza...">
+        <div class="btnrow" style="margin-top:0;">
+          <button class="btn accent sm" onclick="saveApiKey()">Save key</button>
+          <button class="btn secondary sm" onclick="clearApiKey()">Remove key</button>
+        </div>
+        <div id="apiKeyStatus" style="margin-top:10px;"></div>
+      </div>
+      <div class="card">
+        <h3>How data is stored</h3>
+        <p class="small">Patient cases, labs, meds and notes you enter or verify are saved locally on this device (browser local storage) — not to any Google or third-party server. Uninstalling the browser app or clearing site data will erase them, so export/print important cases from the Reports tab. Use anonymous Case IDs and avoid entering direct patient identifiers.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ============================= STATE ============================= */
+let caseIndex = [];      // [{id, label, createdAt, status}]
+let activeCase = null;   // full case object currently loaded
+let pendingImages = [];  // {dataUrl, mediaType, docType, name}
+let currentMode = 'assist'; // teach | assist | auto
+let lastDrpError = null;
+let lastInteractionError = null;
+let lastDiscussionError = {};   // {[drpIndex]: message}
+let lastGenericMatchError = null;
+let modalConfirmHandler = null;
+let currentModuleId = null;   // which of the 10 Clinical Modules is open
+
+const MODULES = [
+  {id:'drp', num:1, icon:'⚠️', title:'Drug-Related Problems', desc:'Identify, assess, intervene, and follow up DRPs.'},
+  {id:'safety', num:2, icon:'🛡️', title:'Medication Safety & Error Prevention', desc:'Screen the 6 rights, allergies, contraindications, high-alert & LASA drugs.'},
+  {id:'reconciliation', num:3, icon:'🔄', title:'Medication Reconciliation', desc:'BPMH, admission/transfer/discharge reconciliation, discrepancies.'},
+  {id:'review', num:4, icon:'📝', title:'Clinical Medication & Prescription Review', desc:'Structured indication-to-recommendation review per drug.'},
+  {id:'dose', num:5, icon:'⚖️', title:'Dose Optimization & Adjustment', desc:'CrCl calculator, renal/hepatic adjustment, individualization.'},
+  {id:'interactions', num:6, icon:'🔗', title:'Drug Interactions & ADR Monitoring', desc:'Interaction checking, plus structured ADR reporting.'},
+  {id:'monitoring', num:7, icon:'📈', title:'Clinical Monitoring & TDM', desc:'Track clinical response and therapeutic drug levels.'},
+  {id:'evidence', num:8, icon:'📚', title:'Evidence- & Guideline-Based Pharmacotherapy', desc:'Ask an evidence-based question, get a cited answer.'},
+  {id:'counseling', num:9, icon:'🗣️', title:'Patient Counseling & Education', desc:'Per-drug counseling checklist with AI-suggested talking points.'},
+  {id:'rounds', num:10, icon:'👥', title:'Clinical Rounds, Teamwork & Outcomes', desc:'Round notes, team communication, and treatment outcomes.'}
+];
+
+const CASE_TEMPLATE = () => ({
+  id: 'CASE-' + Date.now().toString(36).toUpperCase(),
+  createdAt: new Date().toISOString(),
+  status: 'DATA COLLECTION',
+  demographics: {}, history: {}, vitals: {},
+  labs: [], medsCurrent: [], medsPast: [], diagnostics: [],
+  medicalIssues: [], missingData: [], conflicts: [],
+  drps: [], discussions: {}, tasks: [], followups: [],
+  interactions: { drug_drug: [], drug_disease: [], drug_allergy: [], ranOnce: false },
+  plan: { goals:'', alternatives:'', nonpharm:'', pharm:'', recommendations:'' },
+  learningPoints: '',
+  // Module 2 — Medication Safety & Error Prevention
+  safetyChecklist: {},
+  // Module 3 — Medication Reconciliation
+  reconciliationType: 'Admission', bpmh: { home:'', otc:'', herbal:'' }, discrepancies: [],
+  // Module 5 — Dose Optimization & Adjustment
+  doseCalc: { age:'', weight:'', scr:'', sex:'male' },
+  doseNotes: [],
+  // Module 6B — ADR Monitoring
+  adrEntries: [],
+  // Module 7 — Clinical Monitoring & TDM
+  tdmEntries: [],
+  // Module 8 — Evidence-based Q&A log
+  evidenceQAs: [],
+  // Module 9 — Patient Counseling & Education
+  counseling: [],
+  // Module 10 — Clinical Rounds, Teamwork & Outcomes
+  roundsNotes: [], outcomes: { therapeutic:'', safety:'', goalAchievement:'' },
+  // Shared across every module: Interventions + Documentation nav
+  interventions: [],
+  docLog: []
+});
+
+/* ============================= STORAGE HELPERS =============================
+   This app runs as a standalone page (not inside an AI platform sandbox), so it
+   uses the browser's own localStorage instead of the artifact window.storage
+   API. Everything stays on this device. */
+const LS_PREFIX = 'rotationCopilot:';
+async function storeGet(key){
+  try{
+    const raw = localStorage.getItem(LS_PREFIX+key);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+async function storeSet(key,val){
+  try{ localStorage.setItem(LS_PREFIX+key, JSON.stringify(val)); return true; }
+  catch(e){ console.error('storage set failed',e); return false; }
+}
+async function storeDelete(key){ try{ localStorage.removeItem(LS_PREFIX+key); }catch(e){} }
+
+/* ============================= API KEY (Settings) ============================= */
+function getGeminiApiKey(){ return localStorage.getItem('rc_gemini_api_key') || ''; }
+function saveApiKey(){
+  const val = document.getElementById('apiKeyInput').value.trim();
+  const statusEl = document.getElementById('apiKeyStatus');
+  if(!val){ statusEl.innerHTML = `<div class="notice">Enter a key first.</div>`; return; }
+  if(val.includes('…')){ statusEl.innerHTML = `<div class="notice info">Key unchanged. Click the field and type a new key if you want to replace it.</div>`; return; }
+  localStorage.setItem('rc_gemini_api_key', val);
+  statusEl.innerHTML = `<div class="notice info">Key saved on this device.</div>`;
+  document.getElementById('apiKeyInput').value = maskKey(val);
+}
+function clearApiKey(){
+  localStorage.removeItem('rc_gemini_api_key');
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiKeyStatus').innerHTML = `<div class="notice">Key removed.</div>`;
+}
+function maskKey(k){ return k.length>10 ? k.slice(0,8)+'…'+k.slice(-4) : k; }
+function renderSettings(){
+  const k = getGeminiApiKey();
+  document.getElementById('apiKeyInput').value = k ? maskKey(k) : '';
+  document.getElementById('apiKeyStatus').innerHTML = k
+    ? `<div class="notice info">A key is currently saved on this device.</div>`
+    : `<div class="notice">No key saved yet — photo scanning won't work until you add one.</div>`;
+}
+// re-enter edit mode if the user focuses the (masked) key field
+document.addEventListener('DOMContentLoaded', ()=>{
+  const inp = document.getElementById('apiKeyInput');
+  if(inp) inp.addEventListener('focus', function(){ if(this.value.includes('…')) this.value=''; });
+});
+
+async function loadIndex(){
+  const idx = await storeGet('case-index');
+  caseIndex = idx || [];
+}
+async function saveIndex(){ await storeSet('case-index', caseIndex); }
+
+async function loadCase(id){
+  const c = await storeGet('case:'+id);
+  if(c){ activeCase = c; }
+  return c;
+}
+async function saveCase(){
+  if(!activeCase) return;
+  await storeSet('case:'+activeCase.id, activeCase);
+  const entry = caseIndex.find(c=>c.id===activeCase.id);
+  if(entry){
+    entry.status = activeCase.status;
+    entry.completeness = computeCompleteness(activeCase);
+    entry.drpCount = activeCase.drps.length;
+  }
+  await saveIndex();
+}
+
+/* ============================= NAV ============================= */
+function setView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  const btn = document.querySelector(`.nav-item[data-view="${name}"]`);
+  if(btn) btn.classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='patients') renderPatients();
+  if(name==='modules') renderModules();
+  if(name==='module-detail') renderModuleDetail();
+  if(name==='followup') renderFollowup();
+  if(name==='interventions') renderInterventionsView();
+  if(name==='documentation') renderDocumentationView();
+  if(name==='reports') renderReportsView();
+  if(name==='settings') renderSettings();
+  noCaseGuards(name);
+}
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+
+function noCaseGuards(name){
+  const map = {scan:'scanNoCaseNotice', modules:'modulesNoCaseNotice', 'module-detail':'moduleNoCaseNotice', followup:'followupNoCaseNotice', interventions:'interventionsNoCaseNotice', documentation:'documentationNoCaseNotice'};
+  const el = map[name];
+  if(!el) return;
+  const node = document.getElementById(el);
+  let msg = '';
+  if(!activeCase){
+    msg += `<div class="notice">No case is open. <a href="#" onclick="setView('patients');return false;">Go to Patients</a> to create or select one first.</div>`;
+  }
+  if(name==='scan' && !getGeminiApiKey()){
+    msg += `<div class="notice">No Gemini API key saved yet — this won't work until you add one in <a href="#" onclick="setView('settings');return false;">Settings</a>.</div>`;
+  }
+  node.innerHTML = msg;
+}
+
+function refreshActiveModule(){
+  // Called by any engine (DRP/interaction/discussion/etc.) after it updates
+  // case data — a no-op if the user isn't currently looking at Module Detail,
+  // since the data is already saved and will render fresh next time it's opened.
+  if(document.getElementById('view-module-detail').classList.contains('active') && currentModuleId){
+    renderModuleDetail();
+  }
+}
+
+function updateRailCase(){
+  const el = document.getElementById('railCase');
+  if(activeCase){
+    el.style.display='block';
+    el.innerHTML = `<b>${activeCase.id}</b>${activeCase.status}`;
+  } else {
+    el.style.display='none';
+  }
+}
+
+/* ============================= DASHBOARD ============================= */
+function computeCompleteness(c){
+  const checks = [
+    !!(c.demographics && c.demographics.age),
+    !!(c.history && c.history.cc),
+    !!(c.history && c.history.allergies),
+    c.medsCurrent && c.medsCurrent.length>0,
+    c.labs && c.labs.length>0,
+    c.medicalIssues && c.medicalIssues.length>0,
+    c.drps && c.drps.length>0,
+    c.medsCurrent && c.medsCurrent.length>0 && c.medsCurrent.some(m=>m.generic),
+    c.interactions && c.interactions.ranOnce,
+    !!(c.plan && c.plan.recommendations),
+    c.followups && c.followups.length>0,
+    !!c.learningPoints
+  ];
+  const pass = checks.filter(Boolean).length;
+  return Math.round(pass/checks.length*100);
+}
+
+async function renderDashboard(){
+  await loadIndex();
+  const totalDrps = caseIndex.reduce((s,c)=>s+(c.drpCount||0),0);
+  const avgComplete = caseIndex.length ? Math.round(caseIndex.reduce((s,c)=>s+(c.completeness||0),0)/caseIndex.length) : 0;
+  const pendingFollowups = caseIndex.filter(c=>c.status!=='COMPLETED').length;
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat"><div class="num">${caseIndex.length}</div><div class="lbl">Patient cases</div></div>
+    <div class="stat"><div class="num">${totalDrps}</div><div class="lbl">DRPs identified</div></div>
+    <div class="stat"><div class="num">${avgComplete}%</div><div class="lbl">Avg. completeness</div></div>
+    <div class="stat"><div class="num">${pendingFollowups}</div><div class="lbl">Cases in progress</div></div>
+  `;
+  const recent = document.getElementById('dashRecentCases');
+  if(!caseIndex.length){
+    recent.innerHTML = `<div class="empty"><h3>No cases yet</h3><p>Start by adding your first patient file.</p><button class="btn accent" onclick="startNewCase()">+ New Patient Case</button></div>`;
+    return;
+  }
+  recent.innerHTML = caseIndex.slice().reverse().slice(0,5).map(c=>`
+    <div class="case-row">
+      <div onclick="openCase('${c.id}')" style="cursor:pointer;flex:1;min-width:0;">
+        <div class="cid">${c.id}</div>
+        <div class="meta">${c.status} · created ${new Date(c.createdAt).toLocaleDateString()} · ${c.drpCount||0} DRP(s)</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openCase('${c.id}')">
+        <div class="bar"><div style="width:${c.completeness||0}%"></div></div>
+        <span class="small mono">${c.completeness||0}%</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function renderPatients(){
+  await loadIndex();
+  const list = document.getElementById('caseList');
+  if(caseIndex.length===0){
+    list.innerHTML = `<div class="empty"><h3>No cases yet</h3><p>Start by adding your first patient file.</p><button class="btn accent" onclick="startNewCase()">+ New Patient Case</button></div>`;
+    return;
+  }
+  list.innerHTML = caseIndex.slice().reverse().map(c=>`
+    <div class="case-row">
+      <div onclick="openCase('${c.id}')" style="cursor:pointer;flex:1;min-width:0;">
+        <div class="cid">${c.id}</div>
+        <div class="meta">${c.status} · created ${new Date(c.createdAt).toLocaleDateString()} · ${c.drpCount||0} DRP(s)</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openCase('${c.id}')">
+          <div class="bar"><div style="width:${c.completeness||0}%"></div></div>
+          <span class="small mono">${c.completeness||0}%</span>
+        </div>
+        <button class="btn secondary sm" onclick="openCaseForScan('${c.id}', event)" title="Add or edit this case's file photos">📷 Add/Edit Files</button>
+        <button class="btn secondary sm" style="color:var(--red);border-color:#e6c1b7;" onclick="deleteCase('${c.id}', event)" title="Delete case">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function startNewCase(){
+  const c = CASE_TEMPLATE();
+  activeCase = c;
+  caseIndex.push({id:c.id, createdAt:c.createdAt, status:c.status, completeness:0, drpCount:0});
+  await saveCase();
+  await saveIndex();
+  updateRailCase();
+  pendingImages = [];
+  renderThumbs();
+  setView('scan');
+}
+async function openCase(id){
+  await loadCase(id);
+  updateRailCase();
+  setView('modules');
+}
+async function openCaseForScan(id, event){
+  if(event){ event.stopPropagation(); event.preventDefault(); }
+  await loadCase(id);
+  updateRailCase();
+  pendingImages = [];
+  renderThumbs();
+  document.getElementById('scanResultsPreview').innerHTML = '';
+  document.getElementById('scanStatus').innerHTML = '';
+  setView('scan');
+}
+
+/* ============================= SCAN / EXTRACTION ============================= */
+const dz = document.getElementById('dropzone');
+['dragover','dragleave','drop'].forEach(evt=>{
+  dz.addEventListener(evt,e=>{
+    e.preventDefault();
+    if(evt==='dragover') dz.classList.add('drag');
+    else dz.classList.remove('drag');
+  });
+});
+dz.addEventListener('drop', e=>{ handleFiles(e.dataTransfer.files); });
+document.getElementById('cameraInput').addEventListener('change', e=>{
+  const files = e.target.files;
+  e.target.value = ''; // without this, re-selecting the same photo(s) later — e.g. a second batch for the same case — silently fires no event at all
+  handleFiles(files);
+});
+document.getElementById('uploadInput').addEventListener('change', e=>{
+  const files = e.target.files;
+  e.target.value = '';
+  handleFiles(files);
+});
+
+function resizeImage(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1280;
+        const scale = Math.min(1, maxW/img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width*scale; canvas.height = img.height*scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg',0.82);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFiles(fileList){
+  if(!activeCase){ await startNewCase(); }
+  const docType = document.getElementById('docType').value;
+  for(const file of fileList){
+    if(!file.type.startsWith('image/')) continue;
+    try{
+      const dataUrl = await resizeImage(file);
+      pendingImages.push({dataUrl, mediaType:'image/jpeg', docType, name:file.name});
+    }catch(e){ console.error(e); }
+  }
+  renderThumbs();
+}
+
+function renderThumbs(){
+  const t = document.getElementById('thumbs');
+  t.innerHTML = pendingImages.map((img,i)=>`
+    <div class="thumb"><img src="${img.dataUrl}"><button class="rm" onclick="removeThumb(${i})">✕</button></div>
+  `).join('');
+  document.getElementById('pageCount').textContent = pendingImages.length ? `${pendingImages.length} page(s) ready to analyze` : '';
+  document.getElementById('analyzeBtn').disabled = pendingImages.length===0;
+}
+function removeThumb(i){ pendingImages.splice(i,1); renderThumbs(); }
+
+/* ============================= ALTERNATIVE CASE ENTRY: TYPED TEXT / VOICE =============================
+   Both feed the SAME EXTRACTION_SCHEMA_PROMPT and the SAME mergeExtraction()
+   used for photos, so everything downstream (Workup, DRP engine, interaction
+   check, Presentation, etc.) works identically no matter how the data got in. */
+function toggleEntryBox(id){
+  const boxes = ['manualEntryBox','voiceEntryBox'];
+  boxes.forEach(b=>{
+    const el = document.getElementById(b);
+    if(b===id) el.style.display = (el.style.display==='none' ? 'block' : 'none');
+    else el.style.display = 'none';
+  });
+}
+
+async function runTextLikeExtraction(blocks, opts){
+  // Shared tail for both the manual-text and voice pipelines: one extraction
+  // call, merge, save, then chain into generic-name matching + reconciliation
+  // — the same sequence analyzeCurrentBatch() uses for photos.
+  const statusEl = document.getElementById('scanStatus');
+  const setLoading = (msg)=>{ statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> ${msg}</div>`; };
+  if(!activeCase){ await startNewCase(); }
+  document.getElementById('scanResultsPreview').innerHTML = '';
+  setLoading(`Step 1 of 2 — ${opts.readingLabel}…`);
+  try{
+    const raw = await callGemini(EXTRACTION_SCHEMA_PROMPT, blocks, 2500, setLoading);
+    const extracted = parseJsonLoose(raw);
+    mergeExtraction(extracted);
+    await saveCase();
+    opts.onParsed && opts.onParsed();
+
+    const allMeds = [...activeCase.medsCurrent, ...activeCase.medsPast];
+    let genericNote = '';
+    if(allMeds.length){
+      setLoading('Step 2 of 2 — matching trade names to generic (scientific) names…');
+      try{ await identifyGenerics(); }
+      catch(e){ console.warn('Generic-name matching failed:', e); genericNote = `<div class="notice">Generic-name matching failed (${e.message}). You can still edit generic names by hand below.</div>`; }
+    }
+    statusEl.innerHTML = `<div class="notice info">Added to the case. Review the medications below — correct any generic name that looks wrong — then confirm to run the full DRP and interaction analysis.</div>`;
+    document.getElementById('scanResultsPreview').innerHTML = renderExtractionPreview(extracted) + genericNote + (allMeds.length ? renderReconciliationCard() : `<div class="btnrow"><button class="btn" onclick="setView('modules')">Open Clinical Modules →</button></div>`);
+    return true;
+  }catch(e){
+    statusEl.innerHTML = `<div class="notice">${opts.failLabel} (${e.message}). ${opts.failHint}</div>`;
+    return false;
+  }
+}
+
+async function analyzeManualText(){
+  const ta = document.getElementById('manualCaseText');
+  const text = (ta.value||'').trim();
+  if(!text){ document.getElementById('scanStatus').innerHTML = `<div class="notice">Type a few details about the patient first.</div>`; return; }
+  const btn = document.getElementById('manualAnalyzeBtn');
+  btn.disabled = true;
+  const ok = await runTextLikeExtraction(
+    [{type:'text', text:`Free-text clinical note typed by the student (not a photographed document):\n\n${text}`}],
+    {
+      readingLabel: 'reading the case notes and extracting clinical data',
+      failLabel: 'Could not extract structured data from that text',
+      failHint: 'Try rephrasing with clearer labels (age, diagnosis, drug names…), or enter fields directly in a Clinical Module above.',
+      onParsed: ()=>{ ta.value=''; }
+    }
+  );
+  btn.disabled = false;
+}
+
+/* ---- Voice recording ---- */
+let mediaRecorder = null;
+let audioChunks = [];
+let recordedBlob = null;
+let recordingStartTime = null;
+let recordingTimerInterval = null;
+const MAX_RECORDING_SECONDS = 180;
+
+async function startRecording(){
+  const voiceStatus = document.getElementById('voiceStatus');
+  voiceStatus.innerHTML = '';
+  if(!navigator.mediaDevices || !window.MediaRecorder){
+    voiceStatus.innerHTML = `<div class="notice">Voice recording isn't supported in this browser/device. Try Chrome or Safari, or use "Type case details" instead.</div>`;
+    return;
+  }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1}});
+    audioChunks = [];
+    recordedBlob = null;
+    document.getElementById('voicePlayback').innerHTML = '';
+    document.getElementById('voiceAnalyzeBtn').disabled = true;
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e=>{ if(e.data && e.data.size>0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      recordedBlob = new Blob(audioChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+      stream.getTracks().forEach(t=>t.stop());
+      const url = URL.createObjectURL(recordedBlob);
+      document.getElementById('voicePlayback').innerHTML = `<audio controls src="${url}" style="width:100%;margin-top:8px;"></audio>`;
+      document.getElementById('voiceAnalyzeBtn').disabled = false;
+      clearInterval(recordingTimerInterval);
+      document.getElementById('voiceTimer').textContent = '';
+      const rb = document.getElementById('recordBtn');
+      rb.textContent = '🎙️ Re-record';
+      rb.onclick = startRecording;
+    };
+    mediaRecorder.start();
+    recordingStartTime = Date.now();
+    const rb = document.getElementById('recordBtn');
+    rb.textContent = '⏹ Stop recording';
+    rb.onclick = stopRecording;
+    recordingTimerInterval = setInterval(()=>{
+      const secs = Math.floor((Date.now()-recordingStartTime)/1000);
+      document.getElementById('voiceTimer').textContent = `🔴 ${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
+      if(secs >= MAX_RECORDING_SECONDS) stopRecording();
+    }, 250);
+  }catch(e){
+    voiceStatus.innerHTML = `<div class="notice">Couldn't access the microphone (${e.message}). Check this page's microphone permission in your browser settings.</div>`;
+  }
+}
+function stopRecording(){
+  if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+}
+
+async function analyzeVoiceRecording(){
+  if(!recordedBlob){ return; }
+  const btn = document.getElementById('voiceAnalyzeBtn');
+  btn.disabled = true;
+  const statusEl = document.getElementById('scanStatus');
+  const setLoading = (msg)=>{ statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> ${msg}</div>`; };
+  setLoading('Step 1 of 2 — converting the recording…');
+  let base64Audio;
+  try{
+    const arrayBuf = await recordedBlob.arrayBuffer();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await audioCtx.decodeAudioData(arrayBuf);
+    const resampled = await resampleTo16kMono(decoded);
+    const wavBuf = audioBufferToWav(resampled);
+    base64Audio = arrayBufferToBase64(wavBuf);
+    audioCtx.close();
+  }catch(e){
+    statusEl.innerHTML = `<div class="notice">Could not process the recording (${e.message}). Try re-recording, or use "Type case details" instead.</div>`;
+    btn.disabled = false;
+    return;
+  }
+  const blocks = [
+    {type:'audio', source:{type:'base64', media_type:'audio/wav', data: base64Audio}},
+    {type:'text', text:'The audio above is a pharmacy student describing a patient case out loud. Transcribe it mentally and extract the schema from what is said.'}
+  ];
+  await runTextLikeExtraction(blocks, {
+    readingLabel: 'listening to the recording and extracting clinical data',
+    failLabel: 'Could not extract structured data from that recording',
+    failHint: 'Try re-recording more clearly, or use "Type case details" instead.',
+    onParsed: ()=>{ recordedBlob = null; document.getElementById('voicePlayback').innerHTML = ''; }
+  });
+  btn.disabled = false;
+}
+
+function resampleTo16kMono(audioBuffer){
+  const targetRate = 16000;
+  const offlineCtx = new OfflineAudioContext(1, Math.ceil(audioBuffer.duration * targetRate), targetRate);
+  const source = offlineCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(offlineCtx.destination);
+  source.start(0);
+  return offlineCtx.startRendering();
+}
+
+function audioBufferToWav(buffer){
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const samples = numChannels===1 ? buffer.getChannelData(0) : interleaveChannels(buffer.getChannelData(0), buffer.getChannelData(1));
+  const bytesPerSample = 2; // 16-bit PCM
+  const blockAlign = numChannels * bytesPerSample;
+  const out = new ArrayBuffer(44 + samples.length * bytesPerSample);
+  const view = new DataView(out);
+  const writeStr = (offset, str)=>{ for(let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); };
+  writeStr(0,'RIFF'); view.setUint32(4, 36 + samples.length*bytesPerSample, true); writeStr(8,'WAVE');
+  writeStr(12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,numChannels,true);
+  view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*blockAlign,true);
+  view.setUint16(32,blockAlign,true); view.setUint16(34,16,true);
+  writeStr(36,'data'); view.setUint32(40, samples.length*bytesPerSample, true);
+  let offset = 44;
+  for(let i=0;i<samples.length;i++,offset+=2){
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s<0 ? s*0x8000 : s*0x7FFF, true);
+  }
+  return out;
+}
+function interleaveChannels(left, right){
+  const out = new Float32Array(left.length + right.length);
+  let idx=0, i=0;
+  while(idx < out.length){ out[idx++]=left[i]; out[idx++]=right[i]; i++; }
+  return out;
+}
+function arrayBufferToBase64(buffer){
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunkSize){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i+chunkSize));
+  }
+  return btoa(binary);
+}
+
+const EXTRACTION_SCHEMA_PROMPT = `You are a clinical document extraction assistant for a pharmacy student's patient workup. You will be given one or more of: photographed hospital document pages (chart, labs, meds, notes), a free-text case note typed by the student, or an audio recording of the student describing the case out loud. Read/listen to everything carefully, including handwriting in photos, and extract ONLY what is actually stated or shown.
+
+Rules:
+- Never invent a value for something that is not written anywhere in the image at all.
+- BUT real clinical handwriting is often messy, cramped, or abbreviated — that is normal and expected, not a reason to skip a field. If something IS written but is hard to read, you must still give your single best interpretation of it. Only reflect that difficulty through a LOWER confidence score (as low as 10–30 for a genuine best guess on very unclear writing) — never by leaving the field blank or omitting the item entirely.
+- confidence is 0-100, your certainty the extracted text matches what's written. A field you read with total clarity from clean print can be 90+; a hard-fought guess at messy handwriting can still be filled in at 15-30 rather than left out.
+- Every lab/med/diagnostic item needs a "confidence" integer field.
+- Keep text values short and clinical (as written), not narrative.
+- Return JSON only. Do not add any text before or after it, no markdown code fences, no explanation — output must be a single valid JSON object matching exactly this shape (omit a field entirely only if that line/section is genuinely blank in the image, not because it was hard to read):
+
+{
+ "demographics": {"age":"","sex":"","weight":"","height":"","bmi":"","pregnancy":""},
+ "history": {"cc":"","hpi":"","pmh":"","psh":"","family_hx":"","social_hx":"","allergies":"","immunization":""},
+ "vitals": {"bp":"","hr":"","rr":"","temp":"","pain":""},
+ "labs": [{"test":"","result":"","unit":"","range":"","date":"","confidence":0}],
+ "meds_current": [{"drug":"","dose":"","route":"","freq":"","duration":"","start":"","indication":"","confidence":0}],
+ "meds_past": [{"drug":"","dose":"","route":"","freq":"","confidence":0}],
+ "diagnostics": [{"type":"","finding":"","date":"","confidence":0}],
+ "medical_issues": ["short problem name, only if explicitly documented as a diagnosis/problem"],
+ "missing_data": ["specific items a pharmacist would still need, e.g. 'baseline potassium not visible'"]
+}`;
+
+/* ============================= AI CONNECTOR (Google Gemini) =============================
+   Accepts the same block format used throughout this app —
+   [{type:'text', text}] and [{type:'image', source:{type:'base64', media_type, data}}] —
+   and translates it into the Gemini request/response shape internally, so no
+   other part of the app (Scan, DRP engine, Discussion, etc.) had to change.
+
+   RELIABILITY: Google's Gemini backend sometimes answers a specific model with
+   a 503 "This model is currently experiencing high demand..." error. This is a
+   real, documented overload on Google's servers for that model — not a bug in
+   this app and not a bad API key. callGemini() now (1) retries a busy model
+   once with a short delay, then (2) falls back to a second model if the first
+   is still overloaded, before finally giving up. */
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.6-flash']; // tried in order: Google's "always current" flash alias first, then the pinned model this app originally used
+const RETRIES_PER_MODEL = 1;      // extra attempts on the SAME model before moving on
+const RETRY_BACKOFF_MS = [2000];  // delay before each retry above
+
+function blocksToGeminiParts(userContentBlocks){
+  return userContentBlocks.map(b=>{
+    if(b.type==='image' || b.type==='audio'){
+      return { inline_data: { mime_type: b.source.media_type, data: b.source.data } };
+    }
+    return { text: b.text };
+  });
+}
+
+function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+
+function isOverloadMessage(msg){
+  if(!msg) return false;
+  const m = msg.toLowerCase();
+  return m.includes('high demand') || m.includes('overload') || m.includes('unavailable') || m.includes('resource_exhausted') || m.includes('quota') || m.includes('rate limit');
+}
+
+async function callGeminiOnce(model, systemText, userContentBlocks, maxTokens, opts){
+  opts = opts || {};
+  const apiKey = getGeminiApiKey();
+  if(!apiKey){
+    const err = new Error('No Gemini API key saved. Go to Settings and add your Google Gemini API key first.');
+    err.retryable = false;
+    throw err;
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const generationConfig = { maxOutputTokens: maxTokens || 1000 };
+  const body = {
+    contents:[{ role:'user', parts: blocksToGeminiParts(userContentBlocks) }],
+    systemInstruction: { parts:[{ text: systemText }] },
+    generationConfig
+  };
+  if(opts.grounded){
+    // Web-search grounding (for citing real, current guidelines). Structured
+    // JSON mode can't be forced together with the search tool on every model
+    // version, so we rely on strong prompt instructions instead — the caller
+    // is expected to retry ungrounded (JSON-forced) if parsing fails.
+    body.tools = [{ google_search: {} }];
+  } else {
+    generationConfig.responseMimeType = 'application/json';
+  }
+  let resp;
+  try{
+    resp = await fetch(url,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-goog-api-key': apiKey
+      },
+      body: JSON.stringify(body)
+    });
+  }catch(networkErr){
+    const err = new Error('Network request to Gemini failed. Check your internet connection.');
+    err.retryable = true;
+    throw err;
+  }
+  let data;
+  try{ data = await resp.json(); }
+  catch(e){
+    const err = new Error(`Unexpected response (HTTP ${resp.status}) from the API.`);
+    err.retryable = resp.status===503 || resp.status===429 || resp.status===500;
+    throw err;
+  }
+  if(!resp.ok || data.error){
+    const msg = (data.error && data.error.message) || `API error (HTTP ${resp.status})`;
+    const err = new Error(msg);
+    err.retryable = resp.status===503 || resp.status===429 || resp.status===500 || isOverloadMessage(msg);
+    throw err;
+  }
+  const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+  const text = parts.map(p=>p.text||'').join('\n');
+  return text;
+}
+
+/* Same signature as before, plus an optional onStatus(text) callback so a
+   caller can show live progress while this retries / switches models.
+   Non-retryable errors (no API key, etc.) fail immediately; a busy/overloaded
+   model gets one quick retry, then one shot on the fallback model. */
+async function callGemini(systemText, userContentBlocks, maxTokens, onStatus, opts){
+  let lastErr;
+  for(let m=0; m<GEMINI_MODELS.length; m++){
+    const model = GEMINI_MODELS[m];
+    for(let attempt=0; attempt<=RETRIES_PER_MODEL; attempt++){
+      try{
+        return await callGeminiOnce(model, systemText, userContentBlocks, maxTokens, opts);
+      }catch(e){
+        lastErr = e;
+        if(!e.retryable) throw e;
+        const retryingSameModel = attempt < RETRIES_PER_MODEL;
+        if(onStatus){
+          onStatus(retryingSameModel
+            ? `Model busy — retrying in ${Math.round(RETRY_BACKOFF_MS[attempt]/1000)}s…`
+            : (m < GEMINI_MODELS.length-1 ? `Still busy — trying backup model…` : `Backup model is busy too…`));
+        }
+        if(retryingSameModel) await sleep(RETRY_BACKOFF_MS[attempt]);
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/* Robust JSON extraction: strips markdown code fences and any stray text
+   around the JSON, then — if the JSON is truncated or slightly malformed
+   (e.g. cut off mid-token, dangling comma, unclosed string/bracket) —
+   attempts to repair it before giving up. */
+function stripCodeFences(text){
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(fenced) return fenced[1];
+  return text.replace(/```(?:json)?/gi, ''); // opening fence with no closing one (truncated)
+}
+function findJsonStart(text){
+  for(let i=0;i<text.length;i++){
+    if(text[i]==='{' || text[i]==='[') return {index:i, open:text[i], close: text[i]==='{' ? '}' : ']'};
+  }
+  return null;
+}
+function repairJson(str){
+  let s = str.replace(/,\s*$/,'').replace(/,\s*(\}|\])/g,'$1'); // drop trailing/dangling commas
+  const stack = [];
+  let inString = false, escape = false;
+  for(let i=0;i<s.length;i++){
+    const ch = s[i];
+    if(inString){
+      if(escape) escape = false;
+      else if(ch==='\\') escape = true;
+      else if(ch==='"') inString = false;
+      continue;
+    }
+    if(ch==='"'){ inString = true; continue; }
+    if(ch==='{' || ch==='[') stack.push(ch);
+    else if(ch==='}' || ch===']') stack.pop();
+  }
+  if(inString) s += '"';
+  while(stack.length){ s += stack.pop()==='{' ? '}' : ']'; }
+  return s;
+}
+function parseJsonLoose(text){
+  if(!text || typeof text !== 'string') throw new Error('Empty response from the model.');
+  const cleaned = stripCodeFences(text).trim();
+  const start = findJsonStart(cleaned);
+  if(!start) throw new Error('No JSON object or array found in the response.');
+  const fromStart = cleaned.slice(start.index);
+
+  // 1) straightforward parse
+  try{ return JSON.parse(fromStart); }catch(e){}
+
+  // 2) trim to the last matching close character at top level, then parse
+  const lastClose = fromStart.lastIndexOf(start.close);
+  if(lastClose > -1){
+    try{ return JSON.parse(fromStart.slice(0,lastClose+1)); }catch(e){}
+  }
+
+  // 3) attempt to repair truncated/malformed JSON (unbalanced brackets, trailing commas, unclosed string)
+  try{ return JSON.parse(repairJson(fromStart)); }catch(e){}
+  if(lastClose > -1){
+    try{ return JSON.parse(repairJson(fromStart.slice(0,lastClose+1))); }catch(e){}
+  }
+
+  throw new Error('The response was not valid JSON, even after attempting repair.');
+}
+
+async function analyzeCurrentBatch(){
+  const statusEl = document.getElementById('scanStatus');
+  const setLoading = (msg)=>{ statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> ${msg}</div>`; };
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('scanResultsPreview').innerHTML = '';
+
+  // A full patient file can be 10-20+ photos. Sending them all in one request
+  // used to produce a single giant JSON response that got cut off mid-object
+  // (the "Could not parse a structured result" failure) — so large uploads
+  // are now read in small groups and merged into the case, the same way the
+  // app already merges a second scan session later.
+  const BATCH_SIZE = 4;
+  const allImages = pendingImages.slice();
+  const chunks = [];
+  for(let i=0;i<allImages.length;i+=BATCH_SIZE) chunks.push(allImages.slice(i,i+BATCH_SIZE));
+  const totalChunks = chunks.length;
+  const totalSteps = totalChunks + 1;
+
+  const combinedPreview = {medical_issues:[], labs:[], meds_current:[], missing_data:[]};
+  let successCount = 0;
+  const failures = []; // {index, error, raw}
+
+  for(let ci=0; ci<chunks.length; ci++){
+    const chunk = chunks[ci];
+    setLoading(`Step ${ci+1} of ${totalSteps} — reading page group ${ci+1} of ${totalChunks} (${chunk.length} image${chunk.length>1?'s':''})…`);
+    const blocks = chunk.map(img=>({type:'image', source:{type:'base64', media_type: img.mediaType, data: img.dataUrl.split(',')[1]}}));
+    blocks.push({type:'text', text:`Document type(s) in this group: ${[...new Set(chunk.map(i=>i.docType))].join(', ')}. Extract per the schema.`});
+    let raw;
+    try{
+      raw = await callGemini(EXTRACTION_SCHEMA_PROMPT, blocks, 3000, setLoading);
+    }catch(e){
+      failures.push({index: ci+1, error: e.message});
+      continue;
+    }
+    try{
+      const extracted = parseJsonLoose(raw);
+      mergeExtraction(extracted);
+      await saveCase();
+      successCount++;
+      (extracted.medical_issues||[]).forEach(m=>{ if(m && !combinedPreview.medical_issues.includes(m)) combinedPreview.medical_issues.push(m); });
+      (extracted.missing_data||[]).forEach(m=>{ if(m && !combinedPreview.missing_data.includes(m)) combinedPreview.missing_data.push(m); });
+      combinedPreview.labs.push(...(extracted.labs||[]));
+      combinedPreview.meds_current.push(...(extracted.meds_current||[]));
+    }catch(e){
+      failures.push({index: ci+1, error: e.message, raw});
+    }
+  }
+
+  pendingImages = [];
+  renderThumbs();
+
+  if(!successCount){
+    const rawDump = failures.filter(f=>f.raw).map(f=>`--- page group ${f.index} of ${totalChunks} ---\n${f.raw}`).join('\n\n');
+    statusEl.innerHTML = `<div class="notice">Could not parse a structured result from any page group. Try again with fewer pages at a time, or clearer photos — or enter the data manually in a Clinical Module.</div>` +
+      (rawDump ? `<pre style="white-space:pre-wrap;font-size:.78rem;background:#fff;padding:12px;border-radius:8px;border:1px solid var(--line);max-height:320px;overflow:auto;">${rawDump}</pre>` : '');
+    document.getElementById('analyzeBtn').disabled = pendingImages.length===0;
+    return;
+  }
+
+  const failNote = failures.length ? `<div class="notice">Page group${failures.length>1?'s':''} ${failures.map(f=>f.index).join(', ')} of ${totalChunks} couldn't be read as structured data — check anything missing from those pages by hand in a Clinical Module.</div>` : '';
+
+  const allMeds = [...activeCase.medsCurrent, ...activeCase.medsPast];
+  let genericNote = '';
+  if(allMeds.length){
+    setLoading(`Step ${totalSteps} of ${totalSteps} — matching trade names to generic (scientific) names…`);
+    try{ await identifyGenerics(); }
+    catch(e){ console.warn('Generic-name matching failed:', e); genericNote = `<div class="notice">Generic-name matching failed (${e.message}). You can still edit generic names by hand below.</div>`; }
+  }
+
+  statusEl.innerHTML = `<div class="notice info">Extraction complete — ${successCount} of ${totalChunks} page group(s) read successfully. Review the medications below — correct any generic name that looks wrong — then confirm to run the full DRP and interaction analysis.</div>`;
+  document.getElementById('scanResultsPreview').innerHTML = failNote + renderExtractionPreview(combinedPreview) + genericNote + (allMeds.length ? renderReconciliationCard() : `<div class="btnrow"><button class="btn" onclick="setView('modules')">Open Clinical Modules →</button></div>`);
+  document.getElementById('analyzeBtn').disabled = pendingImages.length===0;
+}
+
+function conf(v){ return typeof v==='number'? v : 70; }
+
+function mergeExtraction(ex){
+  const c = activeCase;
+  if(ex.demographics) Object.assign(c.demographics, cleanObj(ex.demographics));
+  if(ex.history) Object.assign(c.history, cleanObj(ex.history));
+  if(ex.vitals) Object.assign(c.vitals, cleanObj(ex.vitals));
+  (ex.labs||[]).forEach(l=>{
+    const existing = c.labs.find(x=>x.test && l.test && x.test.toLowerCase()===l.test.toLowerCase() && x.date===l.date);
+    if(existing && existing.result !== l.result){
+      c.conflicts.push({type:'lab', field:l.test, valueA:existing.result, valueB:l.result, date:l.date, resolved:false});
+    } else if(!existing){ c.labs.push(l); }
+  });
+  (ex.meds_current||[]).forEach(m=>{
+    const existing = c.medsCurrent.find(x=>x.drug && m.drug && x.drug.toLowerCase()===m.drug.toLowerCase());
+    if(existing && existing.dose !== m.dose){
+      c.conflicts.push({type:'medication', field:m.drug, valueA:existing.dose, valueB:m.dose, resolved:false});
+    } else if(!existing){ c.medsCurrent.push(m); }
+  });
+  (ex.meds_past||[]).forEach(m=>{ if(!c.medsPast.find(x=>x.drug===m.drug)) c.medsPast.push(m); });
+  (ex.diagnostics||[]).forEach(d=>{ if(!c.diagnostics.find(x=>x.type===d.type && x.date===d.date)) c.diagnostics.push(d); });
+  (ex.medical_issues||[]).forEach(m=>{ if(m && !c.medicalIssues.includes(m)) c.medicalIssues.push(m); });
+  (ex.missing_data||[]).forEach(m=>{ if(m && !c.missingData.includes(m)) c.missingData.push(m); });
+  if(c.status==='DATA COLLECTION' || c.status==='NEW') c.status='ASSESSMENT';
+}
+function cleanObj(o){ const out={}; Object.keys(o||{}).forEach(k=>{ if(o[k]) out[k]=o[k]; }); return out; }
+
+function renderExtractionPreview(ex){
+  let html = '<div class="card"><h3>What was just extracted</h3>';
+  if(ex.medical_issues && ex.medical_issues.length) html += `<p><b>Problems found:</b> ${ex.medical_issues.join(', ')}</p>`;
+  if(ex.labs && ex.labs.length) html += `<p><b>Labs:</b> ${ex.labs.map(l=>`${l.test} ${l.result}${l.unit||''} (${conf(l.confidence)}%)`).join(', ')}</p>`;
+  if(ex.meds_current && ex.meds_current.length) html += `<p><b>Medications:</b> ${ex.meds_current.map(m=>`${m.drug} ${m.dose||''}`).join(', ')}</p>`;
+  if(ex.missing_data && ex.missing_data.length) html += `<p style="color:var(--amber);"><b>Still needed:</b> ${ex.missing_data.join('; ')}</p>`;
+  html += `<div class="btnrow"><button class="btn" onclick="setView('modules')">Open Clinical Modules →</button></div></div>`;
+  return html;
+}
+
+/* ============================= WORKUP RENDER ============================= */
+function renderPatientDataSummary(){
+  if(!activeCase) return '';
+  const c = activeCase;
+  const conflictsHtml = c.conflicts.filter(x=>!x.resolved).map((cf,i)=>`
+    <div class="notice" style="border-color:#e6c1b7;background:var(--red-soft);">
+      <b>Conflict detected — ${cf.field}:</b> Source A says "${cf.valueA}", another source says "${cf.valueB}".
+      <div class="btnrow"><button class="btn sm secondary" onclick="resolveConflict(${i},'A')">Keep A</button><button class="btn sm secondary" onclick="resolveConflict(${i},'B')">Keep B</button></div>
+    </div>`).join('');
+
+  return `<details class="card">
+    <summary style="cursor:pointer;font-family:var(--serif);font-weight:600;font-size:1.05rem;">📋 Patient data — ${c.id} <span class="hint">${computeCompleteness(c)}% complete · tap to expand/collapse</span></summary>
+    <div style="margin-top:14px;">
+      ${conflictsHtml}
+      <div class="grid3">
+        ${fieldInput('demographics','age','Age')}
+        ${fieldInput('demographics','sex','Sex')}
+        ${fieldInput('demographics','weight','Weight')}
+        ${fieldInput('demographics','height','Height')}
+        ${fieldInput('demographics','bmi','BMI')}
+        ${fieldInput('demographics','pregnancy','Pregnancy status')}
+      </div>
+      ${fieldTextarea('history','cc','Chief complaint')}
+      ${fieldTextarea('history','hpi','HPI (SOCRATES)')}
+      ${fieldTextarea('history','pmh','PMH')}
+      <div class="grid2">
+        ${fieldTextarea('history','family_hx','Family history')}
+        ${fieldTextarea('history','social_hx','Social history')}
+      </div>
+      ${fieldTextarea('history','allergies','Allergies / intolerance / ADRs')}
+
+      <h4 class="mod-section">Vital signs</h4>
+      <div class="grid3">
+        ${fieldInput('vitals','bp','BP')}
+        ${fieldInput('vitals','hr','HR')}
+        ${fieldInput('vitals','rr','RR')}
+        ${fieldInput('vitals','temp','Temp')}
+        ${fieldInput('vitals','pain','Pain score')}
+      </div>
+
+      <h4 class="mod-section">Current medications <span class="hint">${c.medsCurrent.length} item(s)</span></h4>
+      ${renderMedTable(c.medsCurrent,'medsCurrent')}
+      <div class="btnrow">
+        <button class="btn sm secondary" onclick="addRow('medsCurrent')">+ Add medication</button>
+        ${c.medsCurrent.length ? `<button class="btn sm secondary" id="matchGenericsBtn" onclick="matchGenericsAndRefresh()">🔎 Match generic names</button>` : ''}
+      </div>
+      ${lastGenericMatchError ? `<div class="notice" style="margin-top:10px;">${lastGenericMatchError}</div>` : ''}
+
+      <h4 class="mod-section">Past medications <span class="hint">${c.medsPast.length} item(s)</span></h4>
+      ${renderMedTable(c.medsPast,'medsPast')}
+      <div class="btnrow"><button class="btn sm secondary" onclick="addRow('medsPast')">+ Add medication</button></div>
+
+      <h4 class="mod-section">Laboratory findings <span class="hint">${c.labs.length} item(s)</span></h4>
+      ${renderLabTable(c.labs)}
+      <div class="btnrow"><button class="btn sm secondary" onclick="addRow('labs')">+ Add lab</button></div>
+
+      <h4 class="mod-section">Diagnostics</h4>
+      ${renderDiagTable(c.diagnostics)}
+      <div class="btnrow"><button class="btn sm secondary" onclick="addRow('diagnostics')">+ Add diagnostic</button></div>
+
+      <h4 class="mod-section">Medical issues / problem list</h4>
+      <div id="issuesTags">${c.medicalIssues.map((m,i)=>`<span class="chip gray" style="margin:2px 4px 2px 0;">${m} <a href="#" onclick="removeIssue(${i});return false;" style="color:var(--red);">✕</a></span>`).join('')}</div>
+      <div class="btnrow"><input type="text" id="newIssue" placeholder="Add a medical issue…" style="max-width:260px;margin:8px 8px 0 0;display:inline-block;"><button class="btn sm secondary" onclick="addIssue()">Add</button></div>
+
+      <div class="card" style="${c.missingData.length?'':'display:none'}margin-top:14px;">
+        <h3 style="color:var(--amber);">Data missing / needs verification</h3>
+        <ul>${c.missingData.map(m=>`<li>${m}</li>`).join('')}</ul>
+      </div>
+    </div>
+  </details>`;
+}
+
+function fieldInput(section,key,label){
+  const c = activeCase;
+  const val = (c[section] && c[section][key]) || '';
+  return `<div class="field-wrap"><label>${label}</label><input type="text" value="${val.replace(/"/g,'&quot;')}" onchange="setField('${section}','${key}',this.value)"></div>`;
+}
+function fieldTextarea(section,key,label){
+  const c = activeCase;
+  const val = (c[section] && c[section][key]) || '';
+  return `<div class="field-wrap"><label>${label}</label><textarea onchange="setField('${section}','${key}',this.value)">${val}</textarea></div>`;
+}
+function fieldTextareaPlan(key,label){
+  const val = (activeCase.plan && activeCase.plan[key]) || '';
+  return `<div class="field-wrap"><label>${label}</label><textarea onchange="activeCase.plan['${key}']=this.value;saveCase();">${val}</textarea></div>`;
+}
+function setField(section,key,val){
+  if(!activeCase[section]) activeCase[section]={};
+  activeCase[section][key]=val;
+  saveCase();
+}
+function fieldInputGeneric(value,label,onchangeExpr){
+  return `<div class="field-wrap"><label>${label}</label><input type="text" value="${String(value||'').replace(/"/g,'&quot;')}" onchange="${onchangeExpr}"></div>`;
+}
+function fieldTextareaGeneric(value,label,onchangeExpr){
+  return `<div class="field-wrap"><label>${label}</label><textarea onchange="${onchangeExpr}">${value||''}</textarea></div>`;
+}
+
+function confDot(n){
+  const v = conf(n);
+  const cls = v>=85?'hi':(v>=60?'mid':'lo');
+  return `<span class="dot ${cls}"></span>${v}%`;
+}
+
+function renderMedTable(arr,key){
+  if(!arr.length) return `<p class="small">No medications recorded yet.</p>`;
+  return `<table><thead><tr><th>Drug (as written)</th><th>Generic name</th><th>Dose</th><th>Route</th><th>Freq</th><th>Indication</th><th>Source</th><th></th></tr></thead><tbody>
+  ${arr.map((m,i)=>`<tr>
+    <td><input type="text" value="${m.drug||''}" onchange="updateArrField('${key}',${i},'drug',this.value)" style="margin:0;"></td>
+    <td>
+      <input type="text" value="${(m.generic||'').replace(/"/g,'&quot;')}" placeholder="verify / edit" onchange="updateArrField('${key}',${i},'generic',this.value)" style="margin:0;">
+      ${m.drugClass ? `<div class="small" style="margin-top:2px;">${m.drugClass}${typeof m.genericConfidence==='number' ? ' · '+confDot(m.genericConfidence) : ''}</div>` : ''}
+      ${m.genericNote ? `<div class="recon-note">${m.genericNote}</div>` : ''}
+    </td>
+    <td><input type="text" value="${m.dose||''}" onchange="updateArrField('${key}',${i},'dose',this.value)" style="margin:0;"></td>
+    <td><input type="text" value="${m.route||''}" onchange="updateArrField('${key}',${i},'route',this.value)" style="margin:0;width:70px;"></td>
+    <td><input type="text" value="${m.freq||''}" onchange="updateArrField('${key}',${i},'freq',this.value)" style="margin:0;width:70px;"></td>
+    <td><input type="text" value="${m.indication||''}" onchange="updateArrField('${key}',${i},'indication',this.value)" style="margin:0;"></td>
+    <td class="mono small">${confDot(m.confidence)}</td>
+    <td><button class="rm" style="position:static;" onclick="removeArrItem('${key}',${i})">✕</button></td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+function renderLabTable(arr){
+  if(!arr.length) return `<p class="small">No labs recorded yet.</p>`;
+  return `<table><thead><tr><th>Test</th><th>Result</th><th>Unit</th><th>Range</th><th>Date</th><th>Source</th><th></th></tr></thead><tbody>
+  ${arr.map((l,i)=>`<tr>
+    <td><input type="text" value="${l.test||''}" onchange="updateArrField('labs',${i},'test',this.value)" style="margin:0;"></td>
+    <td><input type="text" value="${l.result||''}" onchange="updateArrField('labs',${i},'result',this.value)" style="margin:0;width:70px;"></td>
+    <td><input type="text" value="${l.unit||''}" onchange="updateArrField('labs',${i},'unit',this.value)" style="margin:0;width:60px;"></td>
+    <td><input type="text" value="${l.range||''}" onchange="updateArrField('labs',${i},'range',this.value)" style="margin:0;width:80px;"></td>
+    <td><input type="text" value="${l.date||''}" onchange="updateArrField('labs',${i},'date',this.value)" style="margin:0;width:80px;"></td>
+    <td class="mono small">${confDot(l.confidence)}</td>
+    <td><button class="rm" style="position:static;" onclick="removeArrItem('labs',${i})">✕</button></td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+function renderDiagTable(arr){
+  if(!arr.length) return `<p class="small">No diagnostics recorded yet.</p>`;
+  return `<table><thead><tr><th>Type</th><th>Finding</th><th>Date</th><th>Source</th><th></th></tr></thead><tbody>
+  ${arr.map((d,i)=>`<tr>
+    <td><input type="text" value="${d.type||''}" onchange="updateArrField('diagnostics',${i},'type',this.value)" style="margin:0;width:90px;"></td>
+    <td><input type="text" value="${d.finding||''}" onchange="updateArrField('diagnostics',${i},'finding',this.value)" style="margin:0;"></td>
+    <td><input type="text" value="${d.date||''}" onchange="updateArrField('diagnostics',${i},'date',this.value)" style="margin:0;width:80px;"></td>
+    <td class="mono small">${confDot(d.confidence)}</td>
+    <td><button class="rm" style="position:static;" onclick="removeArrItem('diagnostics',${i})">✕</button></td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+function updateArrField(key,i,field,val){ activeCase[key][i][field]=val; saveCase(); }
+function removeArrItem(key,i){ activeCase[key].splice(i,1); saveCase(); renderModuleDetail(); }
+function addRow(key){
+  if(key==='labs') activeCase.labs.push({test:'',result:'',unit:'',range:'',date:'',confidence:100});
+  else if(key==='diagnostics') activeCase.diagnostics.push({type:'',finding:'',date:'',confidence:100});
+  else activeCase[key].push({drug:'',dose:'',route:'',freq:'',indication:'',confidence:100});
+  saveCase(); renderModuleDetail();
+}
+function addIssue(){
+  const v = document.getElementById('newIssue').value.trim();
+  if(v){ activeCase.medicalIssues.push(v); saveCase(); renderModuleDetail(); }
+}
+function removeIssue(i){ activeCase.medicalIssues.splice(i,1); saveCase(); renderModuleDetail(); }
+function resolveConflict(i,choice){
+  const cf = activeCase.conflicts.filter(x=>!x.resolved)[i];
+  cf.resolved = true;
+  const keep = choice==='A'?cf.valueA:cf.valueB;
+  if(cf.type==='lab'){ const l = activeCase.labs.find(x=>x.test===cf.field); if(l) l.result=keep; }
+  if(cf.type==='medication'){ const m = activeCase.medsCurrent.find(x=>x.drug===cf.field); if(m) m.dose=keep; }
+  saveCase(); renderModuleDetail();
+}
+
+/* ============================= DRP ENGINE ============================= */
+function setMode(m){ currentMode = m; refreshActiveModule(); }
+
+async function runDrpEngine(){
+  const btn = document.getElementById('runDrpBtn');
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Analyzing…`; }
+  lastDrpError = null;
+  const c = activeCase;
+  const payload = {
+    medical_issues: c.medicalIssues,
+    // prefer the confirmed generic name once reconciliation has run, so the
+    // engine reasons on real pharmacology rather than a brand name string
+    meds_current: c.medsCurrent.map(m=>({drug:m.generic||m.drug, trade_name:m.generic&&m.generic!==m.drug?m.drug:undefined, dose:m.dose,route:m.route,freq:m.freq,indication:m.indication})),
+    labs: c.labs.map(l=>({test:l.test,result:l.result,unit:l.unit,range:l.range,date:l.date})),
+    allergies: c.history.allergies||'', vitals: c.vitals, demographics: c.demographics
+  };
+  const sys = `You are a clinical pharmacist reviewing a pharmacotherapy workup for a pharmacy student. Given the patient's problems, current medications, labs and demographics (JSON below), identify potential Drug Therapy Problems using ONLY these categories: "unnecessary drug therapy","drug therapy required","ineffective drug","dose too low","dose too high","adverse drug reaction","drug interaction","nonadherence". Only flag issues with real support in the provided data — never invent labs or conditions not given. For each, provide a confidence_level of exactly one of: "High-probability DRP","Possible DRP","Requires additional data","Not enough evidence". Return JSON only. Do not add any text before or after it, no markdown code fences, no explanation — output must be a single valid JSON array matching exactly this shape:
+[{"category":"","drug":"","condition":"","evidence":"","significance":"","priority":"high|medium|low","recommendation":"","monitoring":"","followup":"","confidence_level":""}]
+If there is not enough data to identify any DRP, return an empty array [].`;
+  try{
+    const raw = await callGemini(sys, [{type:'text', text: JSON.stringify(payload)}], 2500);
+    const drps = parseJsonLoose(raw);
+    c.drps = drps;
+    if(c.status==='ASSESSMENT') c.status='DRP IDENTIFIED';
+    await saveCase();
+  }catch(e){
+    lastDrpError = 'DRP analysis failed: '+e.message;
+  }
+  refreshActiveModule();
+}
+
+function drpClass(level){
+  if(level==='High-probability DRP') return 'high';
+  if(level==='Possible DRP') return 'possible';
+  return 'needsdata';
+}
+function drpChip(level){
+  if(level==='High-probability DRP') return '<span class="chip red">High-probability</span>';
+  if(level==='Possible DRP') return '<span class="chip amber">Possible</span>';
+  if(level==='Requires additional data') return '<span class="chip gray">Needs more data</span>';
+  return '<span class="chip gray">Not enough evidence</span>';
+}
+
+function medscapeUrl(drug){ return 'https://reference.medscape.com/search/?q='+encodeURIComponent(drug||''); }
+function uptodateUrl(query){ return 'https://www.uptodate.com/contents/search?search='+encodeURIComponent(query||''); }
+
+function logIntervention(moduleId, moduleTitle, description, recommendation){
+  activeCase.interventions.push({
+    id: 'INT-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    moduleId, moduleTitle, description, recommendation,
+    prescriberResponse: '', outcome: '', status: 'Pending',
+    createdAt: new Date().toISOString()
+  });
+  saveCase();
+}
+function updateDrpFollowup(i,val){ activeCase.drps[i].followupStatus=val; saveCase(); }
+function logDrpIntervention(i){
+  const d = activeCase.drps[i];
+  if(!d) return;
+  logIntervention('drp','Drug-Related Problems', `${d.category} — ${d.drug||d.condition||'(unspecified)'}`, d.recommendation||'');
+  d.logged = true;
+  saveCase();
+  refreshActiveModule();
+}
+
+function renderModuleDRP(){
+  const c = activeCase;
+  let html = `
+    <div class="mode-toggle">
+      <button class="${currentMode==='teach'?'active':''}" onclick="setMode('teach')">Teach me</button>
+      <button class="${currentMode==='assist'?'active':''}" onclick="setMode('assist')">Assist me</button>
+      <button class="${currentMode==='auto'?'active':''}" onclick="setMode('auto')">Auto-draft</button>
+    </div>
+    <div class="card">
+      <h3>A–C. Identify, assess &amp; intervene <span class="hint">against current problems, meds &amp; labs</span></h3>
+      <p class="small">${currentMode==='teach' ? 'Teach mode: think through your own assessment first, then compare against the engine\'s output below.' : currentMode==='auto' ? 'Auto-draft: engine drafts DRPs and discussion directly.' : 'Assist mode: engine drafts DRPs, you refine.'}</p>
+      <button class="btn accent" id="runDrpBtn" onclick="runDrpEngine()">Analyze DRPs</button>
+      ${lastDrpError ? `<div class="notice" style="margin-top:10px;margin-bottom:0;">${lastDrpError}</div>` : ''}
+    </div>`;
+
+  if(!c.drps.length){
+    html += `<div class="empty"><h3>No DRPs analyzed yet</h3><p>Make sure medical issues, current medications, and labs are filled in above, then run the analysis.</p></div>`;
+  } else {
+    html += c.drps.map((d,i)=>`
+      <div class="card drp-card ${drpClass(d.confidence_level)}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+          <div><span class="badge-cat">${d.category}</span>${drpChip(d.confidence_level)}</div>
+          <span class="chip gray">priority: ${d.priority||'—'}</span>
+        </div>
+        <h3 style="margin-top:10px;">${d.drug || d.condition || 'Drug therapy problem'}</h3>
+        <p><b>Condition:</b> ${d.condition||'—'}</p>
+        <p><b>Patient evidence:</b> ${d.evidence||'—'}</p>
+        <p><b>Clinical significance:</b> ${d.significance||'—'}</p>
+        <p><b>Suggested intervention:</b> ${d.recommendation||'—'}</p>
+        <p><b>Monitoring:</b> ${d.monitoring||'—'} &nbsp;|&nbsp; <b>Follow-up:</b> ${d.followup||'—'}</p>
+        <div class="evidence-row">
+          <a class="btn secondary sm" target="_blank" href="${medscapeUrl(d.drug)}">Check drug in Medscape ↗</a>
+          <a class="btn secondary sm" target="_blank" href="${uptodateUrl((d.condition||'')+' '+(d.drug||''))}">Search UpToDate ↗</a>
+          <button class="btn sm" id="discBtn${i}" onclick="generateDiscussion(${i})">${c.discussions[i] ? 'Regenerate discussion' : 'Generate evidence-based discussion'}</button>
+        </div>
+        ${lastDiscussionError[i] ? `<div class="notice" style="margin-top:10px;">${lastDiscussionError[i]}</div>` : ''}
+        ${c.discussions[i] ? renderDiscussion(c.discussions[i]) : ''}
+        <div class="mod-section">
+          <div class="grid2">
+            <div class="field-wrap"><label>D. Follow-up status</label>
+              <select onchange="updateDrpFollowup(${i},this.value)">
+                <option value="" ${!d.followupStatus?'selected':''}>— not set —</option>
+                <option value="Resolved" ${d.followupStatus==='Resolved'?'selected':''}>Resolved</option>
+                <option value="Partially Resolved" ${d.followupStatus==='Partially Resolved'?'selected':''}>Partially Resolved</option>
+                <option value="Not Resolved" ${d.followupStatus==='Not Resolved'?'selected':''}>Not Resolved</option>
+              </select>
+            </div>
+            <div class="field-wrap"><label>E. Documentation</label>
+              <button class="btn sm ${d.logged?'secondary':'accent'}" onclick="logDrpIntervention(${i})" ${d.logged?'disabled':''}>${d.logged ? '✓ Logged to Interventions' : '📌 Log as intervention'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  return html;
+}
+
+function renderDiscussion(disc){
+  const rows = [['problem','Problem'],['patient_evidence','Patient-specific evidence'],['assessment','Pharmacotherapy assessment'],['evidence','Evidence'],['options','Options'],['recommendation','Recommendation'],['rationale','Rationale'],['monitoring','Monitoring'],['followup','Follow-up']];
+  const refs = (disc.references||[]).filter(r=>r && (r.source||r.note));
+  const refsHtml = refs.length ? `<div class="discussion-sec"><b>References</b><div>${refs.map(r=>`${r.source||'Reference'}${r.year?' ('+r.year+')':''}${r.note?' — '+r.note:''}`).join('<br>')}</div></div>` : '';
+  return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+    ${rows.map(([k,label])=>disc[k]?`<div class="discussion-sec"><b>${label}</b><div>${disc[k]}</div></div>`:'').join('')}
+    ${refsHtml}
+  </div>`;
+}
+
+function discussionSchema(modeInstruction, allowSearch){
+  return `You are a senior clinical pharmacist mentoring a pharmacy student. Build a structured, evidence-based clinical discussion for this Drug Therapy Problem, grounded ONLY in the patient data provided — never invent labs, conditions, or facts not given. ${modeInstruction}
+When you cite a guideline, name the specific organization/guideline/year you're drawing on (e.g. "IDSA/ATS 2019 CAP guideline", "WHO Guidelines for Malaria") ONLY if you have genuine confidence it's real and relevant${allowSearch ? ' — use web search if it helps you confirm or find a current, specific guideline for this exact problem' : ''}; otherwise write "general pharmacotherapy principles" in the reference note instead. Never fabricate a specific study, statistic, or guideline you are not confident exists. Keep every field to 1-3 concise sentences.
+Return ONLY a single valid JSON object — no markdown fences, no text before or after it — matching exactly this shape:
+{"problem":"","patient_evidence":"","assessment":"","evidence":"","options":"Option A vs Option B with brief pros/cons","recommendation":"","rationale":"","monitoring":"","followup":"","references":[{"source":"guideline or organization name, or 'general pharmacotherapy principles'","year":"","note":"one short phrase on relevance"}]}`;
+}
+
+async function generateDiscussion(i){
+  const c = activeCase;
+  const d = c.drps[i];
+  delete lastDiscussionError[i];
+  const modeInstruction = currentMode==='teach'
+    ? 'Frame the assessment as a guided teaching dialogue in prose (still fill every JSON field), prompting the student to justify each step, but still return complete field values.'
+    : currentMode==='auto'
+    ? 'Draft complete, ready-to-present field values directly.'
+    : 'Provide structured, concise field values a student can refine.';
+  const payload = {drp:d, medical_issues:c.medicalIssues, meds_current:c.medsCurrent, labs:c.labs};
+  const btn = document.getElementById('discBtn'+i);
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Searching &amp; drafting…`; }
+  try{
+    const raw = await callGemini(discussionSchema(modeInstruction, true), [{type:'text',text:JSON.stringify(payload)}], 1800, null, {grounded:true});
+    c.discussions[i] = parseJsonLoose(raw);
+  }catch(groundedErr){
+    console.warn('Grounded discussion attempt failed, retrying without web search:', groundedErr);
+    try{
+      const raw2 = await callGemini(discussionSchema(modeInstruction, false), [{type:'text',text:JSON.stringify(payload)}], 1600);
+      c.discussions[i] = parseJsonLoose(raw2);
+    }catch(e2){
+      lastDiscussionError[i] = 'Discussion generation failed: '+e2.message;
+      refreshActiveModule();
+      return;
+    }
+  }
+  await saveCase();
+  refreshActiveModule();
+}
+
+/* ============================= FOLLOW-UP / TASKS ============================= */
+function renderFollowup(){
+  if(!activeCase) return;
+  const c = activeCase;
+  document.getElementById('followupBody').innerHTML = `
+    <div class="card">
+      <h3>Clinical tasks</h3>
+      <div id="taskList">${c.tasks.map((t,i)=>`
+        <div class="taskrow ${t.done?'done':''}">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${i})">
+          <div class="txt">${t.text} <span class="small">— ${t.owner||'you'}, due ${t.due||'—'}</span></div>
+          <button class="rm" style="position:static;" onclick="removeTask(${i})">✕</button>
+        </div>`).join('') || '<p class="small">No tasks yet.</p>'}
+      </div>
+      <div class="btnrow">
+        <input type="text" id="newTaskText" placeholder="e.g. Review culture result tomorrow" style="max-width:280px;margin:0;">
+        <input type="text" id="newTaskDue" placeholder="Due (e.g. tomorrow)" style="max-width:150px;margin:0;">
+        <button class="btn sm secondary" onclick="addTask()">Add task</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Outcome tracking <span class="hint">baseline → first evaluation → second evaluation</span></h3>
+      <table><thead><tr><th>Parameter</th><th>Baseline</th><th>1st eval</th><th>2nd eval</th><th>Status</th><th></th></tr></thead><tbody>
+        ${c.followups.map((f,i)=>`<tr>
+          <td><input type="text" value="${f.param||''}" onchange="updateFollowup(${i},'param',this.value)" style="margin:0;"></td>
+          <td><input type="text" value="${f.baseline||''}" onchange="updateFollowup(${i},'baseline',this.value)" style="margin:0;width:80px;"></td>
+          <td><input type="text" value="${f.eval1||''}" onchange="updateFollowup(${i},'eval1',this.value)" style="margin:0;width:80px;"></td>
+          <td><input type="text" value="${f.eval2||''}" onchange="updateFollowup(${i},'eval2',this.value)" style="margin:0;width:80px;"></td>
+          <td><select onchange="updateFollowup(${i},'status',this.value)" style="margin:0;">
+            ${['Initial','Resolved','Stable','Improved','Partial Improvement','Unimproved','Worsened','Failure'].map(s=>`<option ${f.status===s?'selected':''}>${s}</option>`).join('')}
+          </select></td>
+          <td><button class="rm" style="position:static;" onclick="removeFollowup(${i})">✕</button></td>
+        </tr>`).join('') || `<tr><td colspan="6" class="small">No outcome parameters yet.</td></tr>`}
+      </tbody></table>
+      <div class="btnrow"><button class="btn sm secondary" onclick="addFollowup()">+ Add parameter</button></div>
+    </div>
+  `;
+}
+function addTask(){
+  const text = document.getElementById('newTaskText').value.trim();
+  const due = document.getElementById('newTaskDue').value.trim();
+  if(!text) return;
+  activeCase.tasks.push({text,due,owner:'student',done:false});
+  saveCase(); renderFollowup();
+}
+function toggleTask(i){ activeCase.tasks[i].done=!activeCase.tasks[i].done; saveCase(); renderFollowup(); }
+function removeTask(i){ activeCase.tasks.splice(i,1); saveCase(); renderFollowup(); }
+function addFollowup(){ activeCase.followups.push({param:'',baseline:'',eval1:'',eval2:'',status:'Initial'}); saveCase(); renderFollowup(); }
+function updateFollowup(i,field,val){ activeCase.followups[i][field]=val; saveCase(); }
+function removeFollowup(i){ activeCase.followups.splice(i,1); saveCase(); renderFollowup(); }
+
+/* ============================= PRESENTATION ============================= */
+function na(v){ return v && String(v).trim() ? v : '<em>Data not available.</em>'; }
+function renderPresentation(){
+  if(!activeCase) return;
+  const c = activeCase;
+  document.getElementById('presBody').innerHTML = `
+    <div class="presoutline">
+      <h2>Case Presentation — ${c.id}</h2>
+      <p><b>Status:</b> ${c.status} &nbsp; <b>Completeness:</b> ${computeCompleteness(c)}%</p>
+
+      <h4>Patient profile</h4>
+      <p>Age: ${na(c.demographics.age)} · Sex: ${na(c.demographics.sex)} · Weight: ${na(c.demographics.weight)} · Height: ${na(c.demographics.height)}</p>
+
+      <h4>Chief complaint &amp; HPI</h4>
+      <p>${na(c.history.cc)}</p><p>${na(c.history.hpi)}</p>
+
+      <h4>Relevant PMH / allergies</h4>
+      <p>${na(c.history.pmh)}</p><p><b>Allergies:</b> ${na(c.history.allergies)}</p>
+
+      <h4>Current medications</h4>
+      <p>${c.medsCurrent.length ? c.medsCurrent.map(m=>`${m.drug}${m.generic && m.generic.toLowerCase()!==m.drug.toLowerCase() ? ' ('+m.generic+')' : ''} ${m.dose||''} ${m.route||''} ${m.freq||''}`).join('; ') : '<em>Data not available.</em>'}</p>
+
+      <h4>Vital signs</h4>
+      <p>BP ${na(c.vitals.bp)} · HR ${na(c.vitals.hr)} · RR ${na(c.vitals.rr)} · Temp ${na(c.vitals.temp)}</p>
+
+      <h4>Laboratory findings</h4>
+      <p>${c.labs.length ? c.labs.map(l=>`${l.test} ${l.result}${l.unit||''} (ref ${l.range||'—'})`).join('; ') : '<em>Data not available.</em>'}</p>
+
+      <h4>Problem list</h4>
+      <p>${c.medicalIssues.length ? c.medicalIssues.join(', ') : '<em>Data not available.</em>'}</p>
+
+      <h4>Drug therapy problems</h4>
+      ${c.drps.length ? c.drps.map(d=>`<p><b>${d.category}</b> — ${d.drug||d.condition||''}: ${d.significance||''} <i>(${d.confidence_level})</i></p>`).join('') : '<p><em>None identified yet.</em></p>'}
+
+      <h4>Drug interactions</h4>
+      ${(()=>{ const ix=c.interactions||{drug_drug:[],drug_disease:[],drug_allergy:[]}; const all=[...(ix.drug_drug||[]),...(ix.drug_disease||[]),...(ix.drug_allergy||[])]; return all.length ? all.map(x=>`<p><b>${x.severity||'—'}</b> — ${x.drug_a?x.drug_a+' + '+x.drug_b:(x.drug||'')+' '+(x.condition||x.allergy||'')}: ${x.management||x.clinical_effect||''}</p>`).join('') : `<p><em>${ix.ranOnce ? 'None identified.' : 'Not checked yet.'}</em></p>`; })()}
+
+      <h4>Goals &amp; plan</h4>
+      <p><b>Goals:</b> ${na(c.plan.goals)}</p>
+      <p><b>Alternatives:</b> ${na(c.plan.alternatives)}</p>
+      <p><b>Recommendation:</b> ${na(c.plan.recommendations)}</p>
+
+      <h4>Monitoring &amp; follow-up</h4>
+      <p>${c.followups.length ? c.followups.map(f=>`${f.param}: ${f.baseline} → ${f.eval1} → ${f.eval2} (${f.status})`).join('; ') : '<em>Data not available.</em>'}</p>
+
+      <h4>Learning points</h4>
+      <p>${na(c.learningPoints)}</p>
+    </div>
+  `;
+}
+function copyPresentation(){
+  const text = document.getElementById('presBody').innerText;
+  navigator.clipboard.writeText(text).then(()=>alert('Presentation text copied.'));
+}
+
+/* ============================= CONFIRM MODAL ============================= */
+function showConfirmModal({title, body, confirmLabel, cancelLabel, onConfirm}){
+  document.getElementById('modalTitle').textContent = title || 'Are you sure?';
+  document.getElementById('modalBody').textContent = body || '';
+  document.getElementById('modalConfirmBtn').textContent = confirmLabel || 'Confirm';
+  document.getElementById('modalCancelBtn').textContent = cancelLabel || 'Cancel';
+  modalConfirmHandler = onConfirm;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.add('hidden');
+  modalConfirmHandler = null;
+}
+document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
+document.getElementById('modalConfirmBtn').addEventListener('click', async ()=>{
+  const fn = modalConfirmHandler;
+  closeModal();
+  if(fn) await fn();
+});
+
+/* ============================= DELETE CASE ============================= */
+function deleteCase(id, event){
+  if(event){ event.stopPropagation(); event.preventDefault(); }
+  showConfirmModal({
+    title: 'Delete this case?',
+    body: `This permanently removes ${id} and everything saved in it from this device. This can't be undone.`,
+    confirmLabel: 'Delete case',
+    cancelLabel: 'Keep case',
+    onConfirm: async ()=>{
+      await storeDelete('case:'+id);
+      caseIndex = caseIndex.filter(x=>x.id!==id);
+      await saveIndex();
+      if(activeCase && activeCase.id===id){
+        activeCase = null;
+        updateRailCase();
+      }
+      if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+      if(document.getElementById('view-patients').classList.contains('active')) renderPatients();
+      if(document.getElementById('view-reports').classList.contains('active')) renderReportsView();
+    }
+  });
+}
+
+/* ============================= MEDICATION RECONCILIATION (trade → generic) =============================
+   A dedicated step between extraction and analysis: the model guesses a
+   generic name for every drug string it read, the student verifies/edits it,
+   and everything downstream (DRP engine, interaction check) reasons on the
+   confirmed generic name rather than a brand name. */
+const GENERIC_ID_PROMPT = `You are a clinical pharmacist expert in international drug nomenclature, including trade/brand names used across US, European, Middle East/Gulf, and South Asian markets. You'll receive a JSON array of medication entries exactly as transcribed from a patient's chart — these may be brand names, abbreviations, or handwriting/OCR approximations, and occasionally already-generic names.
+
+For EACH entry, in the same order, identify:
+- generic_name: your best-guess INN/generic (scientific) name. For combination products, list all components (e.g. "amoxicillin/clavulanic acid"). If the input already looks generic, repeat it.
+- trade_examples: 1-2 common trade names for that generic, for the student's reference (empty string if not useful)
+- drug_class: short pharmacological/therapeutic class
+- confidence: 0-100, your genuine certainty in this match given the string provided
+- note: a short flag if the name is ambiguous between two plausible drugs or you're unsure (e.g. "could be X or Y — verify"), otherwise an empty string
+
+Never guess wildly — low confidence plus an honest note is better than a confident wrong answer. Return ONLY a single valid JSON array, no markdown fences, no text before or after it, matching exactly this shape and the SAME LENGTH AND ORDER as the input:
+[{"generic_name":"","trade_examples":"","drug_class":"","confidence":0,"note":""}]`;
+
+async function identifyGenerics(){
+  const c = activeCase;
+  // Only match items with no generic name yet — never overwrite a name the
+  // student already confirmed or hand-edited, even if this is called again
+  // later (a second scan batch, or the manual "Match generic names" button).
+  const items = [
+    ...c.medsCurrent.map((m,i)=>({arr:'medsCurrent', idx:i, drug:m.drug})),
+    ...c.medsPast.map((m,i)=>({arr:'medsPast', idx:i, drug:m.drug}))
+  ].filter(x=>x.drug && !activeCase[x.arr][x.idx].generic);
+  if(!items.length) return;
+  const payload = items.map(x=>({as_written:x.drug}));
+  const raw = await callGemini(GENERIC_ID_PROMPT, [{type:'text', text: JSON.stringify(payload)}], 2000);
+  const results = parseJsonLoose(raw);
+  results.forEach((r,idx)=>{
+    const target = items[idx];
+    if(!target) return;
+    const obj = activeCase[target.arr][target.idx];
+    if(!obj) return;
+    obj.generic = r.generic_name || '';
+    obj.genericConfidence = typeof r.confidence==='number' ? r.confidence : 60;
+    obj.drugClass = r.drug_class || '';
+    obj.tradeExamples = r.trade_examples || '';
+    obj.genericNote = r.note || '';
+  });
+  await saveCase();
+}
+
+async function matchGenericsAndRefresh(){
+  const btn = document.getElementById('matchGenericsBtn');
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Matching…`; }
+  lastGenericMatchError = null;
+  try{ await identifyGenerics(); }
+  catch(e){ lastGenericMatchError = 'Generic-name matching failed: '+e.message; }
+  renderModuleDetail();
+}
+
+function renderReconciliationCard(){
+  const c = activeCase;
+  const rows = [
+    ...c.medsCurrent.map((m,i)=>({...m, arr:'medsCurrent', idx:i})),
+    ...c.medsPast.map((m,i)=>({...m, arr:'medsPast', idx:i}))
+  ];
+  return `<div class="card">
+    <h3>Medication reconciliation <span class="hint">confirm the generic (scientific) name before running the full analysis</span></h3>
+    <p class="small">Trade names are matched to a likely generic automatically — treat this as a starting point, not a verified fact. Correct anything that looks wrong, then continue.</p>
+    <table><thead><tr><th>As written</th><th>Generic name</th><th>Class</th><th>Match confidence</th></tr></thead><tbody>
+      ${rows.map(m=>`<tr>
+        <td class="mono">${m.drug||'—'}</td>
+        <td>
+          <input type="text" value="${(m.generic||'').replace(/"/g,'&quot;')}" onchange="updateArrField('${m.arr}',${m.idx},'generic',this.value)" style="margin:0;">
+          ${m.genericNote ? `<div class="recon-note">${m.genericNote}</div>` : ''}
+        </td>
+        <td class="small">${m.drugClass||'—'}</td>
+        <td class="small">${typeof m.genericConfidence==='number' ? confDot(m.genericConfidence) : '—'}</td>
+      </tr>`).join('')}
+    </tbody></table>
+    <div class="btnrow">
+      <button class="btn accent" id="confirmMedsBtn" onclick="confirmMedsAndAnalyze()">Confirm medications &amp; run full analysis</button>
+      <button class="btn secondary sm" onclick="setView('modules')">Edit in Clinical Modules instead</button>
+    </div>
+  </div>`;
+}
+
+async function confirmMedsAndAnalyze(){
+  const statusEl = document.getElementById('scanStatus');
+  const setLoading = (msg)=>{ statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> ${msg}</div>`; };
+  const btn = document.getElementById('confirmMedsBtn');
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Working…`; }
+  setLoading('Step 1 of 2 — analyzing drug therapy problems against the confirmed medication list…');
+  await runDrpEngine();
+  setLoading('Step 2 of 2 — checking drug–drug, drug–disease and drug–allergy interactions…');
+  await runInteractionCheck();
+  const ix = activeCase.interactions;
+  const ixCount = (ix.drug_drug.length + ix.drug_disease.length + ix.drug_allergy.length);
+  statusEl.innerHTML = `<div class="notice info">Full workup complete — ${activeCase.drps.length} DRP(s) and ${ixCount} interaction finding(s) identified. Review them on the DRPs &amp; Interactions tab.</div>`;
+  document.getElementById('scanResultsPreview').innerHTML = `<div class="btnrow"><button class="btn accent" onclick="openModule('drp')">Open DRPs &amp; Interactions →</button><button class="btn secondary" onclick="setView('modules')">Open Clinical Modules →</button></div>`;
+}
+
+/* ============================= DRUG INTERACTION ENGINE ============================= */
+const INTERACTION_PROMPT = `You are a clinical pharmacist specializing in drug interaction review for a pharmacy student's workup. You'll receive the patient's confirmed generic medication list plus relevant clinical context (active problems, key labs, allergies). Identify ALL clinically meaningful:
+1) drug-drug interactions (between pairs of the listed medications)
+2) drug-disease interactions (a listed medication against a listed medical issue)
+3) drug-allergy conflicts (a listed medication against a documented allergy)
+
+Base this strictly on established pharmacology — do not invent an interaction that doesn't exist, and do not flag trivial/theoretical interactions with no real clinical significance. If a category has no findings, return an empty array for it. For each finding, severity must be exactly one of: "Contraindicated","Major","Moderate","Minor". Return ONLY a single valid JSON object, no markdown fences, no text before or after it, matching exactly this shape:
+{"drug_drug":[{"drug_a":"","drug_b":"","severity":"","mechanism":"","clinical_effect":"","management":""}],"drug_disease":[{"drug":"","condition":"","severity":"","clinical_effect":"","management":""}],"drug_allergy":[{"drug":"","allergy":"","concern":"","management":""}]}`;
+
+async function runInteractionCheck(){
+  const btn = document.getElementById('runInteractionBtn');
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Checking…`; }
+  lastInteractionError = null;
+  const c = activeCase;
+  const meds = [...new Set([...c.medsCurrent, ...c.medsPast].map(m=>m.generic || m.drug).filter(Boolean))];
+  if(meds.length < 1){
+    lastInteractionError = 'Add at least one medication (with a generic name, if possible) above first.';
+    refreshActiveModule();
+    return;
+  }
+  const payload = {
+    medications: meds,
+    medical_issues: c.medicalIssues,
+    allergies: c.history.allergies || 'none documented',
+    key_labs: c.labs.map(l=>`${l.test}: ${l.result}${l.unit||''}`)
+  };
+  try{
+    const raw = await callGemini(INTERACTION_PROMPT, [{type:'text', text: JSON.stringify(payload)}], 2200);
+    const result = parseJsonLoose(raw);
+    c.interactions = {
+      drug_drug: result.drug_drug || [],
+      drug_disease: result.drug_disease || [],
+      drug_allergy: result.drug_allergy || [],
+      ranOnce: true
+    };
+    if(c.status==='DRP IDENTIFIED') c.status = 'INTERACTIONS CHECKED';
+    await saveCase();
+  }catch(e){
+    lastInteractionError = 'Interaction check failed: '+e.message;
+  }
+  refreshActiveModule();
+}
+
+function severityClass(sev){
+  if(!sev) return 'needsdata';
+  const s = sev.toLowerCase();
+  if(s.includes('contraindicat') || s.includes('major')) return 'high';
+  if(s.includes('moderate')) return 'possible';
+  return 'needsdata';
+}
+function severityChip(sev){
+  const cls = severityClass(sev);
+  const map = {high:'red', possible:'amber', needsdata:'gray'};
+  return `<span class="chip ${map[cls]}">${sev||'—'}</span>`;
+}
+
+function addAdrEntry(){
+  activeCase.adrEntries.push({suspectedDrug:'', description:'', severity:'Mild', causality:'Possible', preventability:'', management:'', reported:false, createdAt:new Date().toISOString()});
+  saveCase(); refreshActiveModule();
+}
+function updateAdrField(i,field,val){ activeCase.adrEntries[i][field]=val; saveCase(); }
+function toggleAdrReported(i){ activeCase.adrEntries[i].reported = !activeCase.adrEntries[i].reported; saveCase(); refreshActiveModule(); }
+function removeAdrEntry(i){ activeCase.adrEntries.splice(i,1); saveCase(); refreshActiveModule(); }
+
+function renderModuleInteractions(){
+  const c = activeCase;
+  const ix = c.interactions || {drug_drug:[],drug_disease:[],drug_allergy:[],ranOnce:false};
+  const total = (ix.drug_drug||[]).length + (ix.drug_disease||[]).length + (ix.drug_allergy||[]).length;
+  let html = `<h4 class="mod-section" style="margin-top:0;">Section A — Drug interactions</h4>
+    <div class="card">
+      <h3>Check interactions <span class="hint">drug–drug, drug–disease, drug–allergy</span></h3>
+      <p class="small">Runs on the confirmed generic medication list against active problems and documented allergies.</p>
+      <button class="btn accent" id="runInteractionBtn" onclick="runInteractionCheck()">Check interactions</button>
+      ${lastInteractionError ? `<div class="notice" style="margin-top:10px;margin-bottom:0;">${lastInteractionError}</div>` : ''}
+    </div>`;
+
+  if(!ix.ranOnce && total===0){
+    html += `<div class="empty"><h3>Not checked yet</h3><p>Confirm the medication list has generic names above, then run the check.</p></div>`;
+  } else if(total===0){
+    html += `<div class="notice info">No clinically significant interactions identified among the current entries.</div>`;
+  } else {
+    const groups = [['drug_drug','Drug–drug'],['drug_disease','Drug–disease'],['drug_allergy','Drug–allergy']];
+    groups.forEach(([key,label])=>{
+      const items = ix[key]||[];
+      if(!items.length) return;
+      html += `<h4 style="margin:16px 0 8px;">${label} <span class="hint">${items.length} finding(s)</span></h4>`;
+      html += items.map(it=>`
+        <div class="card drp-card ${severityClass(it.severity)}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <h3 style="margin:0;">${it.drug_a ? it.drug_a+' + '+it.drug_b : (it.drug||'')+' — '+(it.condition||it.allergy||'')}</h3>
+            ${severityChip(it.severity)}
+          </div>
+          <p><b>Mechanism:</b> ${it.mechanism||'—'}</p>
+          <p><b>Clinical effect:</b> ${it.clinical_effect||it.concern||'—'}</p>
+          <p><b>Management:</b> ${it.management||'—'}</p>
+        </div>`).join('');
+    });
+  }
+
+  html += `<h4 class="mod-section">Section B — ADR monitoring</h4>
+    <div class="card">
+      <h3>Suspected adverse drug reactions</h3>
+      ${c.adrEntries.length ? c.adrEntries.map((a,i)=>`
+        <div class="card" style="background:var(--paper);">
+          <div class="grid2">
+            <div class="field-wrap"><label>Suspected drug</label><input type="text" value="${(a.suspectedDrug||'').replace(/"/g,'&quot;')}" onchange="updateAdrField(${i},'suspectedDrug',this.value)"></div>
+            <div class="field-wrap"><label>Severity</label>
+              <select onchange="updateAdrField(${i},'severity',this.value)">
+                ${['Mild','Moderate','Severe','Life-threatening'].map(s=>`<option ${a.severity===s?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          ${fieldTextareaGeneric(a.description,'Description of the reaction', `updateAdrField(${i},'description',this.value)`)}
+          <div class="grid2">
+            <div class="field-wrap"><label>Causality</label>
+              <select onchange="updateAdrField(${i},'causality',this.value)">
+                ${['Certain','Probable','Possible','Unlikely'].map(s=>`<option ${a.causality===s?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field-wrap"><label>Preventability</label>
+              <select onchange="updateAdrField(${i},'preventability',this.value)">
+                <option value="" ${!a.preventability?'selected':''}>— select —</option>
+                ${['Preventable','Not preventable'].map(s=>`<option ${a.preventability===s?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          ${fieldTextareaGeneric(a.management,'Clinical management (dose reduction / discontinuation / alternative therapy)', `updateAdrField(${i},'management',this.value)`)}
+          <div class="btnrow">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;"><input type="checkbox" ${a.reported?'checked':''} onchange="toggleAdrReported(${i})"> Reported to pharmacovigilance</label>
+            <button class="rm" style="position:static;" onclick="removeAdrEntry(${i})">✕ Remove</button>
+          </div>
+        </div>
+      `).join('') : `<p class="small">No ADRs logged for this case.</p>`}
+      <div class="btnrow"><button class="btn sm secondary" onclick="addAdrEntry()">+ Log an ADR</button></div>
+    </div>`;
+  return html;
+}
+
+/* ============================= MODULE DISPATCH ============================= */
+function renderModules(){
+  const grid = document.getElementById('modulesGrid');
+  grid.innerHTML = MODULES.map(m=>`
+    <div class="card module-card" onclick="openModule('${m.id}')">
+      <div class="module-num">${m.num}</div>
+      <div class="module-icon">${m.icon}</div>
+      <h3>${m.title}</h3>
+      <p class="small">${m.desc}</p>
+    </div>`).join('');
+}
+function openModule(id){ currentModuleId = id; setView('module-detail'); }
+function renderModuleDetail(){
+  if(!activeCase) return;
+  const meta = MODULES.find(m=>m.id===currentModuleId);
+  document.getElementById('moduleDetailTitle').textContent = meta ? `${meta.num}. ${meta.title}` : 'Module';
+  document.getElementById('patientDataSummaryBody').innerHTML = renderPatientDataSummary();
+  const renderers = { drp:renderModuleDRP, safety:renderModuleSafety, reconciliation:renderModuleReconciliation, review:renderModuleReview, dose:renderModuleDose, interactions:renderModuleInteractions, monitoring:renderModuleMonitoring, evidence:renderModuleEvidence, counseling:renderModuleCounseling, rounds:renderModuleRounds };
+  const fn = renderers[currentModuleId];
+  document.getElementById('moduleDetailBody').innerHTML = fn ? fn() : '<p class="small">Unknown module.</p>';
+}
+
+/* ============================= MODULE 2 — MEDICATION SAFETY & ERROR PREVENTION ============================= */
+const SAFETY_ITEMS = [
+  ['rightPatient','Right patient confirmed'],
+  ['rightDrug','Right drug — matches indication, no look-alike/sound-alike mix-up'],
+  ['rightDose','Right dose for age / weight / renal-hepatic function'],
+  ['rightRoute','Right route'],
+  ['rightFrequency','Right frequency / timing'],
+  ['rightDuration','Right duration — not open-ended without a review date'],
+  ['allergyVerified','Allergy history verified against every current order'],
+  ['contraindications','Screened for contraindications'],
+  ['duplicateTherapy','No unintentional duplicate therapy (same class/ingredient)'],
+  ['highAlert','High-alert medications double-checked (anticoagulants, insulin, opioids…)'],
+  ['lasa','Look-alike/sound-alike name risk checked'],
+  ['adminSafety','Administration technique/device appropriate']
+];
+function toggleSafetyItem(key){ activeCase.safetyChecklist[key] = !activeCase.safetyChecklist[key]; saveCase(); refreshActiveModule(); }
+function updateSafetyNotes(v){ activeCase.safetyChecklist.notes = v; saveCase(); }
+function logSafetyIntervention(){
+  const checked = SAFETY_ITEMS.filter(([k])=>activeCase.safetyChecklist[k]).length;
+  logIntervention('safety','Medication Safety & Error Prevention', `Safety screen: ${checked}/${SAFETY_ITEMS.length} items checked`, activeCase.safetyChecklist.notes||'');
+  activeCase.safetyChecklist.logged = true;
+  saveCase(); refreshActiveModule();
+}
+function renderModuleSafety(){
+  const c = activeCase;
+  const checked = SAFETY_ITEMS.filter(([k])=>c.safetyChecklist[k]).length;
+  return `<div class="card">
+    <h3>Medication safety screen <span class="hint">${checked}/${SAFETY_ITEMS.length} checked</span></h3>
+    <p class="small">Work through each item against the medication list above.</p>
+    ${SAFETY_ITEMS.map(([k,label])=>`<label class="check-row"><input type="checkbox" ${c.safetyChecklist[k]?'checked':''} onchange="toggleSafetyItem('${k}')"> ${label}</label>`).join('')}
+    ${fieldTextareaGeneric(c.safetyChecklist.notes,'Notes / errors identified & preventive action', `updateSafetyNotes(this.value)`)}
+    <div class="btnrow"><button class="btn sm ${c.safetyChecklist.logged?'secondary':'accent'}" onclick="logSafetyIntervention()" ${c.safetyChecklist.logged?'disabled':''}>${c.safetyChecklist.logged?'✓ Logged to Interventions':'📌 Log as intervention'}</button></div>
+  </div>`;
+}
+
+/* ============================= MODULE 3 — MEDICATION RECONCILIATION ============================= */
+function updateBpmh(key,val){ activeCase.bpmh[key]=val; saveCase(); }
+function addDiscrepancy(){
+  const type = document.getElementById('discType').value;
+  const detail = (document.getElementById('discDetail').value||'').trim();
+  if(!detail) return;
+  activeCase.discrepancies.push({type,detail});
+  saveCase(); refreshActiveModule();
+}
+function removeDiscrepancy(i){ activeCase.discrepancies.splice(i,1); saveCase(); refreshActiveModule(); }
+function renderModuleReconciliation(){
+  const c = activeCase;
+  const allMeds = [...c.medsCurrent, ...c.medsPast];
+  let html = `<div class="card">
+    <h3>Reconciliation type</h3>
+    <select onchange="activeCase.reconciliationType=this.value;saveCase();">
+      ${['Admission','Transfer','Discharge'].map(t=>`<option ${c.reconciliationType===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+  </div>
+  <div class="card">
+    <h3>Best Possible Medication History (BPMH)</h3>
+    ${fieldTextareaGeneric(c.bpmh.home,'Home medications', `updateBpmh('home',this.value)`)}
+    ${fieldTextareaGeneric(c.bpmh.otc,'OTC medications', `updateBpmh('otc',this.value)`)}
+    ${fieldTextareaGeneric(c.bpmh.herbal,'Herbal / supplements', `updateBpmh('herbal',this.value)`)}
+  </div>`;
+  html += allMeds.length ? renderReconciliationCard() : `<div class="empty"><h3>No medications yet</h3><p>Add medications above, or add a case file from Patients.</p></div>`;
+  html += `<div class="card">
+    <h3>Discrepancies</h3>
+    ${c.discrepancies.length ? c.discrepancies.map((d,i)=>`<div class="check-row"><span><b>${d.type}:</b> ${d.detail}</span><button class="rm" style="position:static;" onclick="removeDiscrepancy(${i})">✕</button></div>`).join('') : `<p class="small">None logged.</p>`}
+    <div class="btnrow">
+      <select id="discType"><option>Unintentional omission</option><option>Unintentional duplication</option><option>Incorrect dose</option><option>Incorrect frequency</option><option>Incorrect medication</option></select>
+      <input type="text" id="discDetail" placeholder="Detail…" style="flex:1;min-width:140px;">
+      <button class="btn sm secondary" onclick="addDiscrepancy()">Add</button>
+    </div>
+  </div>`;
+  return html;
+}
+
+/* ============================= MODULE 4 — CLINICAL MEDICATION & PRESCRIPTION REVIEW ============================= */
+let lastReviewError = null;
+const REVIEW_PROMPT = `You are a clinical pharmacist performing a structured prescription review for a pharmacy student. For EACH medication in the list (JSON below), given the patient's problems/labs/allergies, assess it. Never invent data not given — say "unclear" where the data provided doesn't support a judgment. Return ONLY a JSON array, same length and order as the input medication list:
+[{"indication_appropriate":"yes/no/unclear + brief why","effectiveness":"adequate/inadequate/unclear","safety_concerns":"short","dose_appropriate":"yes/no/unclear + brief why","route_appropriate":"yes/no","duration_appropriate":"yes/no/unclear","completeness_issue":"any missing info needed to prescribe safely, or 'none'","recommendation":"short, actionable"}]`;
+async function runReviewEngine(){
+  const btn = document.getElementById('runReviewBtn');
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Reviewing…`; }
+  lastReviewError = null;
+  const c = activeCase;
+  if(!c.medsCurrent.length){ lastReviewError='Add current medications above first.'; refreshActiveModule(); return; }
+  const payload = { meds: c.medsCurrent.map(m=>({drug:m.generic||m.drug, dose:m.dose, route:m.route, freq:m.freq, indication:m.indication})), medical_issues:c.medicalIssues, labs:c.labs.map(l=>({test:l.test,result:l.result,unit:l.unit,range:l.range})), allergies:c.history.allergies||'' };
+  try{
+    const raw = await callGemini(REVIEW_PROMPT, [{type:'text', text: JSON.stringify(payload)}], 2500);
+    const result = parseJsonLoose(raw);
+    c.medsCurrent.forEach((m,i)=>{ if(result[i]) m.review = result[i]; });
+    await saveCase();
+  }catch(e){ lastReviewError = 'Review failed: '+e.message; }
+  refreshActiveModule();
+}
+function renderModuleReview(){
+  const c = activeCase;
+  let html = `<div class="card">
+    <h3>Structured prescription review <span class="hint">indication → recommendation, per drug</span></h3>
+    <button class="btn accent" id="runReviewBtn" onclick="runReviewEngine()">Run review</button>
+    ${lastReviewError?`<div class="notice" style="margin-top:10px;margin-bottom:0;">${lastReviewError}</div>`:''}
+  </div>`;
+  if(!c.medsCurrent.length){
+    html += `<div class="empty"><h3>No current medications yet</h3><p>Add them above first.</p></div>`;
+  } else {
+    html += c.medsCurrent.map(m=>{
+      const r = m.review;
+      return `<div class="card">
+        <h3>${m.drug}${m.generic&&m.generic!==m.drug?' ('+m.generic+')':''} <span class="small">${m.dose||''} ${m.route||''} ${m.freq||''}</span></h3>
+        ${r ? `<p><b>Indication appropriate:</b> ${r.indication_appropriate||'—'}</p>
+          <p><b>Effectiveness:</b> ${r.effectiveness||'—'}</p>
+          <p><b>Safety concerns:</b> ${r.safety_concerns||'—'}</p>
+          <p><b>Dose appropriate:</b> ${r.dose_appropriate||'—'} &nbsp;|&nbsp; <b>Route:</b> ${r.route_appropriate||'—'} &nbsp;|&nbsp; <b>Duration:</b> ${r.duration_appropriate||'—'}</p>
+          <p><b>Completeness:</b> ${r.completeness_issue||'—'}</p>
+          <p><b>Recommendation:</b> ${r.recommendation||'—'}</p>` : `<p class="small">Not reviewed yet — run the review above.</p>`}
+      </div>`;
+    }).join('');
+  }
+  return html;
+}
+
+/* ============================= MODULE 5 — DOSE OPTIMIZATION & ADJUSTMENT ============================= */
+function calcCrCl(){
+  const age = parseFloat(activeCase.doseCalc.age || activeCase.demographics.age);
+  const weight = parseFloat(activeCase.doseCalc.weight || activeCase.demographics.weight);
+  const scr = parseFloat(activeCase.doseCalc.scr);
+  const sex = activeCase.doseCalc.sex || 'male';
+  if(!age || !weight || !scr) return null;
+  let crcl = ((140-age)*weight) / (72*scr);
+  if(sex==='female') crcl *= 0.85;
+  return Math.round(crcl*10)/10;
+}
+function updateDoseCalcField(key,val){ activeCase.doseCalc[key]=val; saveCase(); refreshActiveModule(); }
+const DOSE_PROMPT = `You are a clinical pharmacist advising on dose adjustment for a pharmacy student. Given a medication, the patient's CrCl (mL/min, may be null if not calculable) and key labs/demographics (JSON below), state whether renal dose adjustment is typically needed and give general guidance based on standard references (e.g. reduce dose / extend interval / avoid / use with caution). If you're not confident a specific medication needs renal adjustment, say so rather than inventing a number — never fabricate a specific percentage or level you aren't sure of. Briefly note hepatic adjustment, weight-based, or pediatric/geriatric considerations if relevant. Return ONLY JSON: {"renal_adjustment":"","hepatic_adjustment":"","other_considerations":""}`;
+async function suggestDoseAdjustment(i){
+  const m = activeCase.medsCurrent[i];
+  const btn = document.getElementById('doseSuggestBtn'+i);
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Checking…`; }
+  const payload = { drug: m.generic||m.drug, dose:m.dose, freq:m.freq, crcl: calcCrCl(), demographics: activeCase.demographics, labs: activeCase.labs.map(l=>({test:l.test,result:l.result,unit:l.unit})) };
+  try{
+    const raw = await callGemini(DOSE_PROMPT, [{type:'text', text: JSON.stringify(payload)}], 900);
+    m.doseAdjustment = parseJsonLoose(raw);
+    await saveCase();
+  }catch(e){ m.doseAdjustment = {renal_adjustment:'Failed: '+e.message}; }
+  refreshActiveModule();
+}
+function renderModuleDose(){
+  const c = activeCase;
+  const crcl = calcCrCl();
+  let html = `<div class="card calc-box">
+    <h3>Creatinine clearance <span class="hint">Cockcroft-Gault</span></h3>
+    <div class="grid3">
+      ${fieldInputGeneric(c.doseCalc.age||c.demographics.age,'Age (yr)', `updateDoseCalcField('age',this.value)`)}
+      ${fieldInputGeneric(c.doseCalc.weight||c.demographics.weight,'Weight (kg)', `updateDoseCalcField('weight',this.value)`)}
+      ${fieldInputGeneric(c.doseCalc.scr,'Serum creatinine (mg/dL)', `updateDoseCalcField('scr',this.value)`)}
+    </div>
+    <div class="field-wrap"><label>Sex</label>
+      <select onchange="updateDoseCalcField('sex',this.value)">
+        <option value="male" ${c.doseCalc.sex!=='female'?'selected':''}>Male</option>
+        <option value="female" ${c.doseCalc.sex==='female'?'selected':''}>Female</option>
+      </select>
+    </div>
+    ${crcl!==null ? `<p class="calc-result">CrCl ≈ ${crcl} mL/min</p>` : `<p class="small">Enter age, weight and serum creatinine to calculate (auto-fills from Demographics where possible).</p>`}
+  </div>`;
+  if(!c.medsCurrent.length){
+    html += `<div class="empty"><h3>No medications yet</h3><p>Add current medications above.</p></div>`;
+  } else {
+    html += c.medsCurrent.map((m,i)=>`
+      <div class="card">
+        <h3>${m.drug}${m.generic&&m.generic!==m.drug?' ('+m.generic+')':''}</h3>
+        <button class="btn sm secondary" id="doseSuggestBtn${i}" onclick="suggestDoseAdjustment(${i})">Suggest renal/hepatic adjustment</button>
+        ${m.doseAdjustment ? `<p style="margin-top:8px;"><b>Renal adjustment:</b> ${m.doseAdjustment.renal_adjustment||'—'}</p>
+          <p><b>Hepatic adjustment:</b> ${m.doseAdjustment.hepatic_adjustment||'—'}</p>
+          <p><b>Other considerations:</b> ${m.doseAdjustment.other_considerations||'—'}</p>` : ''}
+      </div>`).join('');
+  }
+  return html;
+}
+
+/* ============================= MODULE 7 — CLINICAL MONITORING & TDM ============================= */
+function updateOutcomeField(key,val){ activeCase.outcomes[key]=val; saveCase(); }
+function addTdmEntry(){ activeCase.tdmEntries.push({drug:'',levelType:'Trough',value:'',unit:'',sampleTime:'',therapeuticRange:'',interpretation:''}); saveCase(); refreshActiveModule(); }
+function updateTdmField(i,field,val){ activeCase.tdmEntries[i][field]=val; saveCase(); }
+function removeTdmEntry(i){ activeCase.tdmEntries.splice(i,1); saveCase(); refreshActiveModule(); }
+function renderModuleMonitoring(){
+  const c = activeCase;
+  let html = `<div class="card">
+    <h3>Clinical response</h3>
+    ${fieldTextareaGeneric(c.outcomes.therapeutic,'Response to therapy so far (symptoms, vitals trend, relevant labs trend)', `updateOutcomeField('therapeutic',this.value)`)}
+  </div>
+  <div class="card">
+    <h3>Therapeutic drug monitoring</h3>
+    ${c.tdmEntries.length ? c.tdmEntries.map((t,i)=>`
+      <div class="card" style="background:var(--paper);">
+        <div class="grid3">
+          ${fieldInputGeneric(t.drug,'Drug', `updateTdmField(${i},'drug',this.value)`)}
+          <div class="field-wrap"><label>Level type</label><select onchange="updateTdmField(${i},'levelType',this.value)">${['Peak','Trough','Random'].map(s=>`<option ${t.levelType===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          ${fieldInputGeneric(t.sampleTime,'Sample timing', `updateTdmField(${i},'sampleTime',this.value)`)}
+        </div>
+        <div class="grid3">
+          ${fieldInputGeneric(t.value,'Value', `updateTdmField(${i},'value',this.value)`)}
+          ${fieldInputGeneric(t.unit,'Unit', `updateTdmField(${i},'unit',this.value)`)}
+          ${fieldInputGeneric(t.therapeuticRange,'Therapeutic range', `updateTdmField(${i},'therapeuticRange',this.value)`)}
+        </div>
+        ${fieldInputGeneric(t.interpretation,'Interpretation (sub/within/supratherapeutic — action)', `updateTdmField(${i},'interpretation',this.value)`)}
+        <div class="btnrow"><button class="rm" style="position:static;" onclick="removeTdmEntry(${i})">✕ Remove</button></div>
+      </div>`).join('') : `<p class="small">No drug levels logged.</p>`}
+    <div class="btnrow"><button class="btn sm secondary" onclick="addTdmEntry()">+ Add drug level</button></div>
+  </div>`;
+  return html;
+}
+
+/* ============================= MODULE 8 — EVIDENCE- & GUIDELINE-BASED PHARMACOTHERAPY ============================= */
+const EVIDENCE_QA_PROMPT = `You are a clinical pharmacist answering an evidence-based pharmacotherapy question for a pharmacy student, using this specific patient's context where relevant (JSON below). Use web search if it helps you find or confirm current, real guidance. Cite the specific organization/guideline/year you draw on ONLY if you are genuinely confident it's real; otherwise say "general pharmacotherapy principles" — never fabricate a citation. Keep the answer focused, a few sentences. Return ONLY JSON, nothing else: {"answer":"","references":[{"source":"","year":"","note":""}]}`;
+async function askEvidenceQuestion(){
+  const ta = document.getElementById('evidenceQuestion');
+  const q = (ta.value||'').trim();
+  if(!q) return;
+  const btn = document.getElementById('evidenceAskBtn');
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Searching &amp; answering…`; }
+  const c = activeCase;
+  const payload = { question:q, medical_issues:c.medicalIssues, meds_current:c.medsCurrent.map(m=>m.generic||m.drug), labs:c.labs, demographics:c.demographics };
+  let entry = { question:q, answer:'', references:[], createdAt:new Date().toISOString() };
+  try{
+    const raw = await callGemini(EVIDENCE_QA_PROMPT, [{type:'text',text:JSON.stringify(payload)}], 1400, null, {grounded:true});
+    const result = parseJsonLoose(raw);
+    entry.answer = result.answer||''; entry.references = result.references||[];
+  }catch(e){
+    try{
+      const raw2 = await callGemini(EVIDENCE_QA_PROMPT.replace(' Use web search if it helps you find or confirm current, real guidance.',''), [{type:'text',text:JSON.stringify(payload)}], 1200);
+      const result2 = parseJsonLoose(raw2);
+      entry.answer = result2.answer||''; entry.references = result2.references||[];
+    }catch(e2){ entry.answer = 'Could not get an answer ('+e2.message+').'; }
+  }
+  c.evidenceQAs.unshift(entry);
+  await saveCase();
+  ta.value = '';
+  refreshActiveModule();
+}
+function renderModuleEvidence(){
+  const c = activeCase;
+  let html = `<div class="card">
+    <h3>Ask an evidence-based question</h3>
+    <p class="small">e.g. "What's the current first-line regimen for this patient's community-acquired pneumonia?" — answered with this patient's data in mind, with references where possible.</p>
+    <textarea id="evidenceQuestion" rows="3" placeholder="Ask a pharmacotherapy question…" style="width:100%;"></textarea>
+    <div class="btnrow"><button class="btn accent sm" id="evidenceAskBtn" onclick="askEvidenceQuestion()">Ask</button></div>
+  </div>`;
+  html += !c.evidenceQAs.length ? `<div class="empty"><h3>No questions asked yet</h3></div>` : c.evidenceQAs.map(qa=>`
+    <div class="card">
+      <h3 style="font-size:.95rem;">${qa.question}</h3>
+      <p>${qa.answer}</p>
+      ${qa.references&&qa.references.length ? `<div class="discussion-sec"><b>References</b><div>${qa.references.map(r=>`${r.source||'Reference'}${r.year?' ('+r.year+')':''}${r.note?' — '+r.note:''}`).join('<br>')}</div></div>` : ''}
+    </div>`).join('');
+  return html;
+}
+
+/* ============================= MODULE 9 — PATIENT COUNSELING & EDUCATION ============================= */
+const COUNSEL_ITEMS = [
+  ['indication','Indication explained'],['dose','Dose & administration instructions given'],
+  ['timing','Timing/duration explained'],['benefits','Expected benefits discussed'],
+  ['sideeffects','Common side effects discussed'],['warning','Serious warning signs discussed'],
+  ['interactions','Drug/food interaction counseling given'],['missed','Missed-dose instructions given'],
+  ['adherence','Adherence importance discussed'],['storage','Storage instructions given'],
+  ['teachback','Teach-back confirms understanding']
+];
+function ensureCounselingEntry(drugIdx){
+  let entry = activeCase.counseling.find(x=>x.drugRef===drugIdx);
+  if(!entry){ entry = {drugRef:drugIdx, items:{}, notes:''}; activeCase.counseling.push(entry); }
+  return entry;
+}
+function toggleCounselItem(drugIdx,key){ const e=ensureCounselingEntry(drugIdx); e.items[key]=!e.items[key]; saveCase(); refreshActiveModule(); }
+function updateCounselNotes(drugIdx,val){ ensureCounselingEntry(drugIdx).notes = val; saveCase(); }
+const COUNSEL_SUGGEST_PROMPT = `You are a clinical pharmacist preparing patient counseling talking points for a pharmacy student, for ONE medication. Given the drug, dose/route/frequency and the patient's problem list (JSON below), suggest brief plain-language counseling points: key instructions, 2-4 common side effects, 1-2 serious warning signs to seek care for, and any notable food/activity precaution. Return ONLY JSON: {"instructions":"","side_effects":"","warning_signs":"","precautions":""}`;
+async function suggestCounseling(drugIdx){
+  const m = activeCase.medsCurrent[drugIdx];
+  const btn = document.getElementById('counselSuggestBtn'+drugIdx);
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Drafting…`; }
+  try{
+    const raw = await callGemini(COUNSEL_SUGGEST_PROMPT, [{type:'text', text: JSON.stringify({drug:m.generic||m.drug, dose:m.dose, route:m.route, freq:m.freq, medical_issues:activeCase.medicalIssues})}], 900);
+    ensureCounselingEntry(drugIdx).suggested = parseJsonLoose(raw);
+    await saveCase();
+  }catch(e){ ensureCounselingEntry(drugIdx).suggested = {instructions:'Failed: '+e.message}; }
+  refreshActiveModule();
+}
+function renderModuleCounseling(){
+  const c = activeCase;
+  if(!c.medsCurrent.length) return `<div class="empty"><h3>No medications yet</h3><p>Add current medications above to counsel on them.</p></div>`;
+  return c.medsCurrent.map((m,i)=>{
+    const entry = c.counseling.find(x=>x.drugRef===i) || {items:{},notes:''};
+    const checked = COUNSEL_ITEMS.filter(([k])=>entry.items[k]).length;
+    return `<div class="card">
+      <h3>${m.drug}${m.generic&&m.generic!==m.drug?' ('+m.generic+')':''} <span class="hint">${checked}/${COUNSEL_ITEMS.length} covered</span></h3>
+      <button class="btn sm secondary" id="counselSuggestBtn${i}" onclick="suggestCounseling(${i})">💡 Suggest talking points</button>
+      ${entry.suggested ? `<div class="mod-section"><p><b>Instructions:</b> ${entry.suggested.instructions||'—'}</p><p><b>Side effects to mention:</b> ${entry.suggested.side_effects||'—'}</p><p><b>Warning signs:</b> ${entry.suggested.warning_signs||'—'}</p><p><b>Precautions:</b> ${entry.suggested.precautions||'—'}</p></div>` : ''}
+      <div class="mod-section">
+        ${COUNSEL_ITEMS.map(([k,label])=>`<label class="check-row"><input type="checkbox" ${entry.items[k]?'checked':''} onchange="toggleCounselItem(${i},'${k}')"> ${label}</label>`).join('')}
+        ${fieldTextareaGeneric(entry.notes,'Notes / caregiver education', `updateCounselNotes(${i},this.value)`)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================= MODULE 10 — CLINICAL ROUNDS, TEAMWORK & OUTCOMES ============================= */
+function addRoundsNote(){
+  const ta = document.getElementById('newRoundsNote');
+  const type = document.getElementById('roundsNoteType').value;
+  const v = (ta.value||'').trim();
+  if(!v) return;
+  activeCase.roundsNotes.unshift({type, note:v, createdAt:new Date().toISOString()});
+  saveCase(); refreshActiveModule();
+}
+function removeRoundsNote(i){ activeCase.roundsNotes.splice(i,1); saveCase(); refreshActiveModule(); }
+function renderModuleRounds(){
+  const c = activeCase;
+  return `<div class="card">
+    <h3>Section A — Clinical rounds &amp; teamwork</h3>
+    <div class="btnrow"><select id="roundsNoteType"><option>Ward round</option><option>Case review</option><option>Physician communication</option><option>Nursing communication</option><option>Multidisciplinary team</option></select></div>
+    <textarea id="newRoundsNote" rows="2" placeholder="Log a note…" style="width:100%;"></textarea>
+    <div class="btnrow"><button class="btn sm secondary" onclick="addRoundsNote()">+ Add note</button></div>
+    ${c.roundsNotes.length ? c.roundsNotes.map((n,i)=>`<div class="timeline-item"><b>${n.type}</b> <span class="small mono">${new Date(n.createdAt).toLocaleString()}</span><br>${n.note} <a href="#" onclick="removeRoundsNote(${i});return false;" style="color:var(--red);">✕</a></div>`).join('') : `<p class="small">No round notes yet.</p>`}
+  </div>
+  <div class="card">
+    <h3>Section B — Treatment outcomes</h3>
+    ${fieldTextareaGeneric(c.plan.goals,'Goals of therapy', `activeCase.plan.goals=this.value;saveCase();`)}
+    ${fieldTextareaGeneric(c.plan.recommendations,'Overall recommendation / plan', `activeCase.plan.recommendations=this.value;saveCase();`)}
+    ${fieldTextareaGeneric(c.outcomes.safety,'Safety outcomes (ADRs, avoided harm)', `updateOutcomeField('safety',this.value)`)}
+    ${fieldTextareaGeneric(c.outcomes.goalAchievement,'Goal achievement', `updateOutcomeField('goalAchievement',this.value)`)}
+  </div>
+  <div class="card">
+    <h3>Section C — Reflection / learning points</h3>
+    <textarea onchange="activeCase.learningPoints=this.value;saveCase();" style="min-height:70px;width:100%;">${c.learningPoints||''}</textarea>
+  </div>`;
+}
+
+/* ============================= INTERVENTIONS (cross-module log) ============================= */
+function updateInterventionField(i,field,val){ activeCase.interventions[i][field]=val; saveCase(); }
+function renderInterventionsView(){
+  if(!activeCase) return;
+  const c = activeCase;
+  const body = document.getElementById('interventionsBody');
+  if(!c.interventions.length){
+    body.innerHTML = `<div class="empty"><h3>No interventions logged yet</h3><p>Log one from any Clinical Module — look for "📌 Log as intervention".</p></div>`;
+    return;
+  }
+  body.innerHTML = c.interventions.map((iv,i)=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span class="badge-cat">${iv.moduleTitle}</span>
+        <span class="small mono">${new Date(iv.createdAt).toLocaleString()}</span>
+      </div>
+      <h3 style="margin-top:8px;">${iv.description}</h3>
+      <p><b>Recommendation:</b> ${iv.recommendation||'—'}</p>
+      ${fieldTextareaGeneric(iv.prescriberResponse,'Prescriber response', `updateInterventionField(${i},'prescriberResponse',this.value)`)}
+      ${fieldTextareaGeneric(iv.outcome,'Outcome', `updateInterventionField(${i},'outcome',this.value)`)}
+      <div class="field-wrap"><label>Status</label><select onchange="updateInterventionField(${i},'status',this.value)">${['Pending','Accepted','Rejected','Modified'].map(s=>`<option ${iv.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    </div>`).slice().reverse().join('');
+}
+
+/* ============================= DOCUMENTATION (cross-module note log) ============================= */
+function addDocNote(){
+  const sel = document.getElementById('docNoteModule');
+  const ta = document.getElementById('newDocNote');
+  const v = (ta.value||'').trim();
+  if(!v) return;
+  activeCase.docLog.push({moduleTitle: sel.value, note:v, createdAt:new Date().toISOString()});
+  saveCase(); ta.value=''; renderDocumentationView();
+}
+function removeDocNote(i){ activeCase.docLog.splice(i,1); saveCase(); renderDocumentationView(); }
+function renderDocumentationView(){
+  if(!activeCase) return;
+  const c = activeCase;
+  document.getElementById('documentationBody').innerHTML = `<div class="card">
+    <h3>Add a note</h3>
+    <div class="btnrow"><select id="docNoteModule">${['General',...MODULES.map(m=>m.title)].map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <textarea id="newDocNote" rows="3" placeholder="Clinical note…" style="width:100%;"></textarea>
+    <div class="btnrow"><button class="btn accent sm" onclick="addDocNote()">Add note</button></div>
+  </div>` + (c.docLog.length ? c.docLog.map((d,i)=>`<div class="timeline-item"><b>${d.moduleTitle}</b> <span class="small mono">${new Date(d.createdAt).toLocaleString()}</span><br>${d.note} <a href="#" onclick="removeDocNote(${i});return false;" style="color:var(--red);">✕</a></div>`).slice().reverse().join('') : `<div class="empty"><h3>No notes yet</h3></div>`);
+}
+
+/* ============================= REPORTS (portfolio stats + case presentation) ============================= */
+async function renderReportsView(){
+  await loadIndex();
+  const totalDrps = caseIndex.reduce((s,c)=>s+(c.drpCount||0),0);
+  const completed = caseIndex.filter(c=>c.status==='COMPLETED').length;
+  const avg = caseIndex.length ? Math.round(caseIndex.reduce((s,c)=>s+(c.completeness||0),0)/caseIndex.length) : 0;
+  document.getElementById('portfolioStats').innerHTML = `
+    <div class="stat"><div class="num">${caseIndex.length}</div><div class="lbl">Total cases</div></div>
+    <div class="stat"><div class="num">${totalDrps}</div><div class="lbl">DRPs identified</div></div>
+    <div class="stat"><div class="num">${completed}</div><div class="lbl">Completed cases</div></div>
+    <div class="stat"><div class="num">${avg}%</div><div class="lbl">Avg. completeness</div></div>`;
+  const tbody = document.querySelector('#portfolioTable tbody');
+  tbody.innerHTML = caseIndex.slice().reverse().map(c=>`
+    <tr>
+      <td class="mono" style="cursor:pointer;" onclick="openCase('${c.id}')">${c.id}</td>
+      <td style="cursor:pointer;" onclick="openCase('${c.id}')">${c.status}</td>
+      <td style="cursor:pointer;" onclick="openCase('${c.id}')">${c.completeness||0}%</td>
+      <td style="cursor:pointer;" onclick="openCase('${c.id}')">${c.drpCount||0}</td>
+      <td style="cursor:pointer;" onclick="openCase('${c.id}')">${new Date(c.createdAt).toLocaleDateString()}</td>
+      <td><button class="btn secondary sm" style="color:var(--red);border-color:#e6c1b7;" onclick="deleteCase('${c.id}', event)" title="Delete case">Delete</button></td>
+    </tr>`).join('') || `<tr><td colspan="6" class="small">No cases yet.</td></tr>`;
+  const presNotice = document.getElementById('presNoCaseNotice');
+  if(!activeCase){
+    presNotice.innerHTML = `<div class="notice">No case is open — open one from <a href="#" onclick="setView('patients');return false;">Patients</a> to generate its presentation.</div>`;
+    document.getElementById('presBody').innerHTML = '';
+  } else {
+    presNotice.innerHTML = '';
+    renderPresentation();
+  }
+}
+
+/* ============================= INIT ============================= */
+(async function init(){
+  await loadIndex();
+  renderDashboard();
+  setView('dashboard');
+})();
+</script>
+</body>
+</html>
